@@ -1,0 +1,16 @@
+----------------------------- PaperDesk ULTRA ------------------------
+
+PaperDesk ULTRA is a lightweight writing and document editor app 
+with many features and is data rich. It is designed to give you a lot 
+of information for editing and viewing. 
+
+----------------------------- KEY FEATURES ---------------------------
+
+Able to view read time, ambient noise
+Change color theme and font family
+Documents have special text like bold, underlines, headings, etc.
+Small directory on left to create or quickly access files.
+
+-----------------------------------------------------------------------
+
+Thank you for using PaperDesk ULTRA. 
