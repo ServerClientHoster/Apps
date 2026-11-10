@@ -1,0 +1,15 @@
+FlashPort Drive ----------------------------------------
+
+FlashPort Drive was created if you want to store your files nicely in somewhere else
+than your files app, and has many features that your files app normally has and even
+some other features that make developing and identifying your files easier.
+
+--------------------------------- KEY FEATURES --------------------------
+1. Create folders, upload, and of course, download your files.
+2. Edit any code or view the code of files you uploaded.
+3. Many features good for developing such as size, hex view, size, and many more extra features.
+4. Nice auto-sort system to separate your files and search bar to search them.
+
+------------------------------------------------------------------
+
+Thank you for using FlashPort Drive.
