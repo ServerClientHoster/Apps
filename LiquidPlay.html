@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Satisfying Liquid & Physics Playground</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Inter Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * {
+      font-family: 'Inter', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
+    body {
+      background-color: #030712;
+      color: #f3f4f6;
+      overflow: hidden;
+    }
+    /* Glassmorphism Panel */
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    }
+    .glass-button {
+      background: rgba(30, 41, 59, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .glass-button:hover {
+      background: rgba(51, 65, 85, 0.9);
+      border-color: rgba(255, 255, 255, 0.25);
+      transform: translateY(-1px);
+    }
+    .glass-button.active {
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.45), rgba(99, 102, 241, 0.45));
+      border-color: rgba(56, 189, 248, 0.7);
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.35);
+    }
+    /* Draggable Header handle */
+    .drag-handle {
+      cursor: move;
+      cursor: grab;
+    }
+    .drag-handle:active {
+      cursor: grabbing;
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(51, 65, 85, 0.8);
+      border-radius: 9999px;
+    }
+    /* Tooltips */
+    [data-tooltip] {
+      position: relative;
+    }
+    [data-tooltip]:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: 115%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.95);
+      color: #e2e8f0;
+      padding: 4px 8px;
+      font-size: 11px;
+      border-radius: 6px;
+      white-space: nowrap;
+      pointer-events: none;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+      z-index: 100;
+    }
+  </style>
+</head>
+<body class="w-screen h-screen relative select-none overflow-hidden bg-slate-950">
+
+  <!-- Main Canvas Container -->
+  <div id="canvas-wrapper" class="w-full h-full relative">
+    <canvas id="physics-canvas" class="w-full h-full block cursor-crosshair"></canvas>
+  </div>
+
+  <!-- TOP HUD HEADER -->
+  <header class="absolute top-3 left-3 right-3 flex justify-between items-center pointer-events-none z-30">
+    
+    <!-- Title & Preset Loader -->
+    <div class="flex items-center gap-2.5 pointer-events-auto">
+      <div class="glass-panel px-3.5 py-2 rounded-2xl flex items-center gap-2.5 shadow-xl">
+        <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-cyan-500/30">
+          <i class="fa-solid fa-flask-vial text-sm"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-xs sm:text-sm leading-tight text-slate-100 tracking-wide">PIXEL LIQUID SANDBOX</h1>
+          <p class="text-[10px] text-cyan-400 font-medium">Cellular Automata Physics Engine</p>
+        </div>
+      </div>
+
+      <!-- Presets Selector -->
+      <div class="glass-panel px-3 py-1.5 rounded-2xl flex items-center gap-2 shadow-xl">
+        <i class="fa-solid fa-cubes text-slate-400 text-xs"></i>
+        <select id="preset-selector" class="bg-transparent text-xs text-slate-200 outline-none cursor-pointer font-semibold pr-1">
+          <option value="default" class="bg-slate-900 text-slate-200">Sandbox Playground</option>
+          <option value="density_tower" class="bg-slate-900 text-slate-200">Density Column (4 Liquids)</option>
+          <option value="lava_ocean" class="bg-slate-900 text-slate-200">Lava vs Water Reaction</option>
+          <option value="acid_pit" class="bg-slate-900 text-slate-200">Acid Lake & Dissolving Pit</option>
+          <option value="bomb_demo" class="bg-slate-900 text-slate-200">Bomb Blast Demolition</option>
+          <option value="zerog_orbs" class="bg-slate-900 text-slate-200">Zero-G Floating Droplet</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Right HUD Controls -->
+    <div class="flex items-center gap-2 pointer-events-auto">
+      <!-- Performance Stats -->
+      <div class="glass-panel px-3 py-1.5 rounded-2xl flex items-center gap-3 shadow-xl text-xs">
+        <div class="flex items-center gap-1.5" data-tooltip="FPS (Frames Per Second)">
+          <i class="fa-solid fa-gauge-high text-cyan-400 text-xs"></i>
+          <span id="stat-fps" class="font-mono font-bold text-slate-200">60</span>
+        </div>
+        <div class="w-px h-3.5 bg-slate-700/60"></div>
+        <div class="flex items-center gap-1.5" data-tooltip="Active Liquid Pixels">
+          <i class="fa-solid fa-droplet text-blue-400 text-xs"></i>
+          <span id="stat-particles" class="font-mono font-bold text-slate-200">0</span>
+        </div>
+      </div>
+
+      <!-- Surface Render Mode -->
+      <button id="btn-render-mode" data-tooltip="Toggle Crisp Pixels vs Retro Smooth Blur" class="glass-button px-3 h-9 rounded-2xl flex items-center gap-1.5 text-slate-200 text-xs shadow-xl">
+        <i class="fa-solid fa-border-all text-cyan-400 text-xs"></i>
+        <span id="label-render-mode" class="hidden sm:inline font-semibold">Crisp Pixels</span>
+      </button>
+
+      <!-- Audio Toggle -->
+      <button id="btn-audio" data-tooltip="Toggle Sound FX" class="glass-button w-9 h-9 rounded-2xl flex items-center justify-center text-slate-200 shadow-xl">
+        <i class="fa-solid fa-volume-high text-emerald-400 text-xs" id="icon-audio"></i>
+      </button>
+
+      <!-- Summon Menu Side Drawer Toggle -->
+      <button id="btn-toggle-drawer" data-tooltip="Toggle Movable Summon Menu (Hotkey: M)" class="glass-button px-3.5 h-9 rounded-2xl flex items-center gap-2 text-slate-100 font-semibold text-xs shadow-xl active">
+        <i class="fa-solid fa-toolbox text-indigo-400 text-sm"></i>
+        <span>Menu</span>
+        <span class="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded font-mono">M</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- FLOATING LEFT SIDE DOCK -->
+  <div class="fixed top-20 left-3 glass-panel p-2 rounded-2xl shadow-2xl z-30 flex flex-col items-center gap-1.5 border border-slate-700/60">
+    <button class="dock-btn tool-btn glass-button w-9 h-9 rounded-xl flex items-center justify-center text-amber-300" data-tool="hand" data-tooltip="Hand Grab / Drag Objects & Liquids">
+      <i class="fa-solid fa-hand-back-fist text-sm"></i>
+    </button>
+    <button class="dock-btn tool-btn glass-button active w-9 h-9 rounded-xl flex items-center justify-center text-cyan-400" data-tool="liquid" data-type="WATER" data-tooltip="Pour Active Liquid">
+      <i class="fa-solid fa-droplet text-sm"></i>
+    </button>
+    <button class="dock-btn tool-btn glass-button w-9 h-9 rounded-xl flex items-center justify-center text-blue-400" data-tool="hose" data-tooltip="High-Velocity Hose Nozzle">
+      <i class="fa-solid fa-faucet-drip text-sm"></i>
+    </button>
+    <button class="dock-btn tool-btn glass-button w-9 h-9 rounded-xl flex items-center justify-center text-teal-300" data-tool="vortex" data-tooltip="Vortex Whirlpool">
+      <i class="fa-solid fa-tornado text-sm"></i>
+    </button>
+    <button class="dock-btn tool-btn glass-button w-9 h-9 rounded-xl flex items-center justify-center text-rose-500" data-tool="heat_laser" data-tooltip="Torch Heat Ray (Boils water, melts ice)">
+      <i class="fa-solid fa-fire text-sm"></i>
+    </button>
+    <button class="dock-btn tool-btn glass-button w-9 h-9 rounded-xl flex items-center justify-center text-sky-300" data-tool="freeze_ray" data-tooltip="Cryo Freeze Ray (Freezes liquid into ice)">
+      <i class="fa-solid fa-snowflake text-sm"></i>
+    </button>
+    <button class="dock-btn tool-btn glass-button w-9 h-9 rounded-xl flex items-center justify-center text-indigo-300" data-tool="fan" data-tooltip="Wind Fan Force">
+      <i class="fa-solid fa-wind text-sm"></i>
+    </button>
+    <button class="dock-btn tool-btn glass-button w-9 h-9 rounded-xl flex items-center justify-center text-rose-400" data-tool="eraser" data-tooltip="Vacuum Drain / Eraser">
+      <i class="fa-solid fa-eraser text-sm"></i>
+    </button>
+
+    <div class="w-6 h-px bg-slate-700/60 my-1"></div>
+
+    <button id="btn-dock-pause" class="glass-button w-9 h-9 rounded-xl flex items-center justify-center text-slate-200" data-tooltip="Pause / Resume (Spacebar)">
+      <i class="fa-solid fa-pause text-xs" id="icon-dock-pause"></i>
+    </button>
+    <button id="btn-dock-clear" class="glass-button w-9 h-9 rounded-xl flex items-center justify-center text-rose-400" data-tooltip="Clear Canvas (Hotkey: C)">
+      <i class="fa-solid fa-rotate-left text-xs"></i>
+    </button>
+  </div>
+
+  <!-- MOVABLE & COLLAPSIBLE SUMMON MENU PANEL -->
+  <aside id="summon-drawer" class="fixed top-16 right-6 w-80 sm:w-96 glass-panel rounded-3xl z-40 flex flex-col shadow-2xl transition-opacity duration-200 opacity-100 border border-slate-700/60">
+    
+    <!-- Draggable Header Handle -->
+    <div id="drawer-header" class="drag-handle p-3.5 border-b border-slate-700/60 flex items-center justify-between bg-slate-900/70 rounded-t-3xl">
+      <div class="flex items-center gap-2">
+        <i class="fa-solid fa-grip-dots-vertical text-slate-500 text-xs"></i>
+        <i class="fa-solid fa-boxes-packing text-indigo-400 text-sm"></i>
+        <h2 class="font-bold text-xs sm:text-sm text-slate-100">Summon & Customize</h2>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <button id="btn-collapse-drawer" class="w-7 h-7 rounded-lg glass-button flex items-center justify-center text-slate-400 hover:text-white" data-tooltip="Collapse / Expand Panel">
+          <i class="fa-solid fa-chevron-up text-xs" id="icon-collapse"></i>
+        </button>
+        <button id="btn-close-drawer" class="w-7 h-7 rounded-lg glass-button flex items-center justify-center text-slate-400 hover:text-white" data-tooltip="Close Panel (M)">
+          <i class="fa-solid fa-xmark text-xs"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Drawer Body Container -->
+    <div id="drawer-body" class="flex flex-col overflow-hidden max-h-[75vh]">
+      <!-- Category Tabs -->
+      <div class="grid grid-cols-4 gap-1 p-2 bg-slate-950/60 border-b border-slate-800 text-[11px] font-semibold">
+        <button class="drawer-tab active py-1.5 rounded-xl text-center text-slate-300 transition-all bg-slate-800" data-tab="liquids">
+          <i class="fa-solid fa-droplet text-cyan-400 block text-xs mb-0.5"></i> Liquids
+        </button>
+        <button class="drawer-tab py-1.5 rounded-xl text-center text-slate-400 transition-all" data-tab="objects">
+          <i class="fa-solid fa-cube text-amber-400 block text-xs mb-0.5"></i> Objects
+        </button>
+        <button class="drawer-tab py-1.5 rounded-xl text-center text-slate-400 transition-all" data-tab="tools">
+          <i class="fa-solid fa-wand-magic-sparkles text-purple-400 block text-xs mb-0.5"></i> Rays
+        </button>
+        <button class="drawer-tab py-1.5 rounded-xl text-center text-slate-400 transition-all" data-tab="physics">
+          <i class="fa-solid fa-gears text-emerald-400 block text-xs mb-0.5"></i> Physics
+        </button>
+      </div>
+
+      <!-- Tab Content Area -->
+      <div class="p-3.5 space-y-3 overflow-y-auto max-h-[60vh]">
+
+        <!-- TAB 1: LIQUIDS SELECTOR -->
+        <div id="drawer-tab-liquids" class="tab-pane space-y-2">
+          <h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Select Active Liquid Particle</h3>
+          
+          <div class="grid grid-cols-2 gap-2">
+            <button class="tool-btn glass-button active p-2 rounded-xl flex items-center gap-2 text-xs text-left" data-tool="liquid" data-type="WATER">
+              <span class="w-3.5 h-3.5 rounded-full bg-cyan-400 shadow-sm shadow-cyan-400/50 flex-shrink-0"></span>
+              <div>
+                <div class="font-bold text-slate-100 text-[11px]">Water</div>
+                <div class="text-[9px] text-slate-400">Density: 1.0 • Cools</div>
+              </div>
+            </button>
+            <button class="tool-btn glass-button p-2 rounded-xl flex items-center gap-2 text-xs text-left" data-tool="liquid" data-type="OIL">
+              <span class="w-3.5 h-3.5 rounded-full bg-amber-400 shadow-sm shadow-amber-400/50 flex-shrink-0"></span>
+              <div>
+                <div class="font-bold text-slate-100 text-[11px]">Oil</div>
+                <div class="text-[9px] text-slate-400">Density: 0.75 • Floats</div>
+              </div>
+            </button>
+            <button class="tool-btn glass-button p-2 rounded-xl flex items-center gap-2 text-xs text-left" data-tool="liquid" data-type="LAVA">
+              <span class="w-3.5 h-3.5 rounded-full bg-orange-500 shadow-sm shadow-orange-500/50 flex-shrink-0"></span>
+              <div>
+                <div class="font-bold text-slate-100 text-[11px]">Lava</div>
+                <div class="text-[9px] text-slate-400">1200°C • Boils / Melts</div>
+              </div>
+            </button>
+            <button class="tool-btn glass-button p-2 rounded-xl flex items-center gap-2 text-xs text-left" data-tool="liquid" data-type="ACID">
+              <span class="w-3.5 h-3.5 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50 flex-shrink-0"></span>
+              <div>
+                <div class="font-bold text-slate-100 text-[11px]">Acid</div>
+                <div class="text-[9px] text-slate-400">Corrosive Dissolver</div>
+              </div>
+            </button>
+            <button class="tool-btn glass-button p-2 rounded-xl flex items-center gap-2 text-xs text-left" data-tool="liquid" data-type="HONEY">
+              <span class="w-3.5 h-3.5 rounded-full bg-yellow-600 shadow-sm shadow-yellow-600/50 flex-shrink-0"></span>
+              <div>
+                <div class="font-bold text-slate-100 text-[11px]">Honey</div>
+                <div class="text-[9px] text-slate-400">Viscous Sticky Flow</div>
+              </div>
+            </button>
+            <button class="tool-btn glass-button p-2 rounded-xl flex items-center gap-2 text-xs text-left" data-tool="liquid" data-type="MERCURY">
+              <span class="w-3.5 h-3.5 rounded-full bg-slate-300 shadow-sm shadow-slate-300/50 flex-shrink-0"></span>
+              <div>
+                <div class="font-bold text-slate-100 text-[11px]">Mercury</div>
+                <div class="text-[9px] text-slate-400">Density: 5.0 • Heavy Metal</div>
+              </div>
+            </button>
+            <button class="tool-btn glass-button p-2 rounded-xl flex items-center gap-2 text-xs text-left" data-tool="liquid" data-type="NITROGEN">
+              <span class="w-3.5 h-3.5 rounded-full bg-sky-200 shadow-sm shadow-sky-200/50 flex-shrink-0"></span>
+              <div>
+                <div class="font-bold text-slate-100 text-[11px]">Nitrogen</div>
+                <div class="text-[9px] text-slate-400">-196°C • Freezes Liquid</div>
+              </div>
+            </button>
+            <button class="tool-btn glass-button p-2 rounded-xl flex items-center gap-2 text-xs text-left" data-tool="liquid" data-type="STEAM">
+              <span class="w-3.5 h-3.5 rounded-full bg-slate-400 shadow-sm shadow-slate-400/50 flex-shrink-0"></span>
+              <div>
+                <div class="font-bold text-slate-100 text-[11px]">Steam Gas</div>
+                <div class="text-[9px] text-slate-400">Rising Hot Vapor</div>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- TAB 2: OBJECTS SPAWNER -->
+        <div id="drawer-tab-objects" class="tab-pane hidden space-y-2">
+          <h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Spawn Physical Bodies</h3>
+          
+          <div class="grid grid-cols-2 gap-2">
+            <button class="tool-btn glass-button p-2 rounded-xl flex items-center gap-2 text-xs text-left" data-tool="object" data-type="WOOD">
+              <i class="fa-solid fa-square text-amber-600 text-base"></i>
+              <div>
+                <div class="font-bold text-slate-100 text-[11px]">Wood Plank</div>
+                <div class="text-[9px] text-slate-400">Floats on Water</div>
+              </div>
+            </button>
+            <button class="tool-btn glass-button p-2 rounded-xl flex items-center gap-2 text-xs text-left" data-tool="object" data-type="STONE">
+              <i class="fa-solid fa-weight-hanging text-slate-400 text-base"></i>
+              <div>
+                <div class="font-bold text-slate-100 text-[11px]">Heavy Stone</div>
+                <div class="text-[9px] text-slate-400">Sinks Rapidly</div>
+              </div>
+            </button>
+            <button class="tool-btn glass-button p-2 rounded-xl flex items-center gap-2 text-xs text-left" data-tool="object" data-type="SPONGE">
+              <i class="fa-solid fa-mattress-pillow text-yellow-500 text-base"></i>
+              <div>
+                <div class="font-bold text-slate-100 text-[11px]">Sponge Block</div>
+                <div class="text-[9px] text-slate-400">Absorbs Water</div>
+              </div>
+            </button>
+            <button class="tool-btn glass-button p-2 rounded-xl flex items-center gap-2 text-xs text-left" data-tool="object" data-type="ICE">
+              <i class="fa-solid fa-cube text-cyan-300 text-base"></i>
+              <div>
+                <div class="font-bold text-slate-100 text-[11px]">Ice Cube</div>
+                <div class="text-[9px] text-slate-400">Floats & Melts</div>
+              </div>
+            </button>
+            <button class="tool-btn glass-button p-2 rounded-xl flex items-center gap-2 text-xs text-left" data-tool="object" data-type="RUBBER">
+              <i class="fa-solid fa-circle text-rose-500 text-base"></i>
+              <div>
+                <div class="font-bold text-slate-100 text-[11px]">Rubber Ball</div>
+                <div class="text-[9px] text-slate-400">High Bounciness</div>
+              </div>
+            </button>
+            <button class="tool-btn glass-button p-2 rounded-xl flex items-center gap-2 text-xs text-left" data-tool="object" data-type="BARREL">
+              <i class="fa-solid fa-bomb text-orange-500 text-base"></i>
+              <div>
+                <div class="font-bold text-slate-100 text-[11px]">Bomb Barrel</div>
+                <div class="text-[9px] text-slate-400">Detonates on Heat</div>
+              </div>
+            </button>
+            <button class="tool-btn glass-button p-2 rounded-xl flex items-center gap-2 text-xs text-left" data-tool="object" data-type="GEAR">
+              <i class="fa-solid fa-gear text-indigo-400 text-base"></i>
+              <div>
+                <div class="font-bold text-slate-100 text-[11px]">Waterwheel Cog</div>
+                <div class="text-[9px] text-slate-400">Spins with Fluid</div>
+              </div>
+            </button>
+            <button class="tool-btn glass-button p-2 rounded-xl flex items-center gap-2 text-xs text-left" data-tool="object" data-type="RAGDOLL">
+              <i class="fa-solid fa-person text-emerald-400 text-base"></i>
+              <div>
+                <div class="font-bold text-slate-100 text-[11px]">Ragdoll Human</div>
+                <div class="text-[9px] text-slate-400">Jointed Body</div>
+              </div>
+            </button>
+          </div>
+
+          <h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider pt-1">Draw Ramps & Pipes</h3>
+          <div class="grid grid-cols-2 gap-2">
+            <button class="tool-btn glass-button p-2 rounded-xl flex items-center gap-2 text-xs" data-tool="wall">
+              <i class="fa-solid fa-pen-ruler text-slate-300"></i> Concrete Wall
+            </button>
+            <button class="tool-btn glass-button p-2 rounded-xl flex items-center gap-2 text-xs" data-tool="glass">
+              <i class="fa-solid fa-glass-water text-cyan-200"></i> Glass Ramp
+            </button>
+            <button class="tool-btn glass-button p-2 rounded-xl flex items-center gap-2 text-xs" data-tool="emitter">
+              <i class="fa-solid fa-shower text-blue-400"></i> Fluid Source Pipe
+            </button>
+            <button class="tool-btn glass-button p-2 rounded-xl flex items-center gap-2 text-xs" data-tool="drain">
+              <i class="fa-solid fa-circle-dot text-rose-400"></i> Drain Hole Sink
+            </button>
+          </div>
+        </div>
+
+        <!-- TAB 3: TOOLS & FORCE RAYS -->
+        <div id="drawer-tab-tools" class="tab-pane hidden space-y-2">
+          <h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Interactive Force Tools</h3>
+          
+          <div class="space-y-1.5">
+            <button class="tool-btn glass-button w-full p-2 rounded-xl flex items-center gap-2.5 text-xs text-left" data-tool="hand">
+              <i class="fa-solid fa-hand-back-fist text-amber-300 text-sm w-4 text-center"></i>
+              <div>
+                <div class="font-bold text-slate-100 text-[11px]">Hand Grab / Stir</div>
+                <div class="text-[9px] text-slate-400">Drag objects & swirl fluids continuously</div>
+              </div>
+            </button>
+            <button class="tool-btn glass-button w-full p-2 rounded-xl flex items-center gap-2.5 text-xs text-left" data-tool="vortex">
+              <i class="fa-solid fa-tornado text-teal-300 text-sm w-4 text-center"></i>
+              <div>
+                <div class="font-bold text-slate-100 text-[11px]">Vortex Whirlpool</div>
+                <div class="text-[9px] text-slate-400">High-speed spinning suction</div>
+              </div>
+            </button>
+            <button class="tool-btn glass-button w-full p-2 rounded-xl flex items-center gap-2.5 text-xs text-left" data-tool="heat_laser">
+              <i class="fa-solid fa-fire text-rose-500 text-sm w-4 text-center"></i>
+              <div>
+                <div class="font-bold text-slate-100 text-[11px]">Torch Heat Laser</div>
+                <div class="text-[9px] text-slate-400">Heats liquids, turns water to steam, ignites bombs</div>
+              </div>
+            </button>
+            <button class="tool-btn glass-button w-full p-2 rounded-xl flex items-center gap-2.5 text-xs text-left" data-tool="freeze_ray">
+              <i class="fa-solid fa-snowflake text-sky-300 text-sm w-4 text-center"></i>
+              <div>
+                <div class="font-bold text-slate-100 text-[11px]">Cryo Freeze Ray</div>
+                <div class="text-[9px] text-slate-400">Cools liquids, turns water into ice cubes</div>
+              </div>
+            </button>
+            <button class="tool-btn glass-button w-full p-2 rounded-xl flex items-center gap-2.5 text-xs text-left" data-tool="fan">
+              <i class="fa-solid fa-wind text-indigo-300 text-sm w-4 text-center"></i>
+              <div>
+                <div class="font-bold text-slate-100 text-[11px]">Directional Wind Fan</div>
+                <div class="text-[9px] text-slate-400">Blows air force in mouse drag vector</div>
+              </div>
+            </button>
+            <button class="tool-btn glass-button w-full p-2 rounded-xl flex items-center gap-2.5 text-xs text-left" data-tool="eraser">
+              <i class="fa-solid fa-eraser text-rose-400 text-sm w-4 text-center"></i>
+              <div>
+                <div class="font-bold text-slate-100 text-[11px]">Vacuum Eraser Sink</div>
+                <div class="text-[9px] text-slate-400">Deletes liquids & bodies in radius</div>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- TAB 4: PHYSICS & GRAVITY TUNING -->
+        <div id="drawer-tab-physics" class="tab-pane hidden space-y-3">
+          <h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Gravity Direction</h3>
+          
+          <div class="grid grid-cols-3 gap-1.5">
+            <button id="btn-grav-normal" class="glass-button py-1.5 rounded-xl text-xs font-semibold text-slate-200">
+              <i class="fa-solid fa-arrow-down block text-xs mb-0.5 text-cyan-400"></i> Down
+            </button>
+            <button id="btn-grav-zero" class="glass-button py-1.5 rounded-xl text-xs font-semibold text-slate-200">
+              <i class="fa-solid fa-arrows-to-circle block text-xs mb-0.5 text-purple-400"></i> Zero-G
+            </button>
+            <button id="btn-grav-invert" class="glass-button py-1.5 rounded-xl text-xs font-semibold text-slate-200">
+              <i class="fa-solid fa-arrow-up block text-xs mb-0.5 text-amber-400"></i> Inverted
+            </button>
+          </div>
+
+          <div class="space-y-2.5 pt-1">
+            <div class="space-y-1">
+              <div class="flex justify-between text-xs">
+                <span class="text-slate-300 font-semibold">Brush Size</span>
+                <span id="val-brush" class="text-slate-400 font-mono">5 px</span>
+              </div>
+              <input type="range" id="slider-brush" min="1" max="25" step="1" value="5" class="w-full accent-indigo-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg">
+            </div>
+
+            <div class="space-y-1">
+              <div class="flex justify-between text-xs">
+                <span class="text-slate-300 font-semibold">Fall Speed (Simulation Sub-steps)</span>
+                <span id="val-speed" class="text-slate-400 font-mono">2x Speed</span>
+              </div>
+              <input type="range" id="slider-speed" min="1" max="8" step="1" value="2" class="w-full accent-cyan-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg">
+            </div>
+
+            <div class="space-y-1">
+              <div class="flex justify-between text-xs">
+                <span class="text-slate-300 font-semibold">Gravity Y Vector</span>
+                <span id="val-gravity" class="text-slate-400 font-mono">9.8 m/s²</span>
+              </div>
+              <input type="range" id="slider-gravity" min="-20" max="25" step="0.5" value="9.8" class="w-full accent-cyan-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg">
+            </div>
+
+            <div class="space-y-1">
+              <div class="flex justify-between text-xs">
+                <span class="text-slate-300 font-semibold">Global Viscosity</span>
+                <span id="val-viscosity" class="text-slate-400 font-mono">1.0x</span>
+              </div>
+              <input type="range" id="slider-viscosity" min="0.2" max="3.0" step="0.1" value="1.0" class="w-full accent-blue-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg">
+            </div>
+
+            <div class="space-y-1">
+              <div class="flex justify-between text-xs">
+                <span class="text-slate-300 font-semibold">Particle Cap Limit</span>
+                <span id="val-limit" class="text-slate-400 font-mono">Unlimited</span>
+              </div>
+              <input type="range" id="slider-limit" min="500" max="10000" step="500" value="10000" class="w-full accent-emerald-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg">
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN SIMULATION JAVASCRIPT ENGINE -->
+  <script>
+    /**
+     * PIXEL SANDBOX SIMULATION ENGINE
+     * Cellular Automata & Hydrostatic Density Physics
+     */
+
+    // Audio Synthesizer
+    class PhysicsAudioSynth {
+      constructor() {
+        this.ctx = null;
+        this.muted = false;
+        this.lastSplashTime = 0;
+        this.lastSizzleTime = 0;
+      }
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) this.ctx = new AudioContext();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+      }
+      playSplash() {
+        if (this.muted || !this.ctx) return;
+        const now = performance.now();
+        if (now - this.lastSplashTime < 40) return;
+        this.lastSplashTime = now;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(320, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(120, this.ctx.currentTime + 0.08);
+          gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.08);
+          osc.connect(gain); gain.connect(this.ctx.destination);
+          osc.start(); osc.stop(this.ctx.currentTime + 0.08);
+        } catch (e) {}
+      }
+      playSizzle() {
+        if (this.muted || !this.ctx) return;
+        const now = performance.now();
+        if (now - this.lastSizzleTime < 70) return;
+        this.lastSizzleTime = now;
+        try {
+          const bufferSize = this.ctx.sampleRate * 0.05;
+          const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+          const noise = this.ctx.createBufferSource();
+          noise.buffer = buffer;
+          const filter = this.ctx.createBiquadFilter();
+          filter.type = 'bandpass'; filter.frequency.value = 3500;
+          const gain = this.ctx.createGain();
+          gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.05);
+          noise.connect(filter); filter.connect(gain); gain.connect(this.ctx.destination);
+          noise.start();
+        } catch (e) {}
+      }
+      playExplosion() {
+        if (this.muted || !this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(200, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.35);
+          gain.gain.setValueAtTime(0.35, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.35);
+          osc.connect(gain); gain.connect(this.ctx.destination);
+          osc.start(); osc.stop(this.ctx.currentTime + 0.35);
+        } catch (e) {}
+      }
+    }
+
+    const audioSynth = new PhysicsAudioSynth();
+
+    // Element IDs
+    const EL = {
+      EMPTY: 0, WATER: 1, OIL: 2, LAVA: 3, ACID: 4, HONEY: 5,
+      MERCURY: 6, NITROGEN: 7, STEAM: 8, FIRE: 9, WOOD: 10,
+      STONE: 11, ICE: 12, WALL: 13, GLASS: 14, BOMB: 15, SPONGE: 16
+    };
+
+    // Element Properties
+    const PROPS = {
+      [EL.EMPTY]:    { name: 'Empty',    color: [3, 7, 18, 0],       isSolid: false, isLiquid: false, isGas: false },
+      [EL.WATER]:    { name: 'Water',    color: [56, 189, 248, 255],  isSolid: false, isLiquid: true,  density: 1.0, dispersion: 2 },
+      [EL.OIL]:      { name: 'Oil',      color: [250, 204, 21, 255],  isSolid: false, isLiquid: true,  density: 0.7, dispersion: 2 },
+      [EL.LAVA]:     { name: 'Lava',     color: [255, 69, 0, 255],    isSolid: false, isLiquid: true,  density: 2.5, dispersion: 1, temp: 1200 },
+      [EL.ACID]:     { name: 'Acid',     color: [34, 197, 94, 255],   isSolid: false, isLiquid: true,  density: 1.2, dispersion: 2 },
+      [EL.HONEY]:    { name: 'Honey',    color: [217, 119, 6, 255],   isSolid: false, isLiquid: true,  density: 1.4, dispersion: 1 },
+      [EL.MERCURY]:  { name: 'Mercury',  color: [226, 232, 240, 255], isSolid: false, isLiquid: true,  density: 5.0, dispersion: 2 },
+      [EL.NITROGEN]: { name: 'Nitrogen', color: [103, 232, 249, 255], isSolid: false, isLiquid: true,  density: 0.8, dispersion: 2, temp: -196 },
+      [EL.STEAM]:    { name: 'Steam',    color: [203, 213, 225, 200], isSolid: false, isGas: true,     density: -0.2, dispersion: 2 },
+      [EL.FIRE]:     { name: 'Fire',     color: [239, 68, 68, 255],   isSolid: false, isGas: true },
+      [EL.WOOD]:     { name: 'Wood',     color: [133, 77, 14, 255],   isSolid: true,  isMovable: true, density: 0.6 },
+      [EL.STONE]:    { name: 'Stone',    color: [100, 116, 139, 255], isSolid: true,  isMovable: true, density: 3.0 },
+      [EL.ICE]:      { name: 'Ice',      color: [165, 243, 252, 240], isSolid: true,  isMovable: true, density: 0.9 },
+      [EL.WALL]:     { name: 'Wall',     color: [51, 65, 85, 255],    isSolid: true,  isMovable: false },
+      [EL.GLASS]:    { name: 'Glass',    color: [186, 230, 253, 180], isSolid: true,  isMovable: false },
+      [EL.BOMB]:     { name: 'Bomb',     color: [234, 88, 12, 255],   isSolid: true,  isMovable: true, density: 1.5 },
+      [EL.SPONGE]:   { name: 'Sponge',   color: [234, 179, 8, 255],   isSolid: true,  isMovable: true, density: 0.5 }
+    };
+
+    const TYPE_KEY_MAP = {
+      'WATER': EL.WATER, 'OIL': EL.OIL, 'LAVA': EL.LAVA, 'ACID': EL.ACID,
+      'HONEY': EL.HONEY, 'MERCURY': EL.MERCURY, 'NITROGEN': EL.NITROGEN, 'STEAM': EL.STEAM,
+      'WOOD': EL.WOOD, 'STONE': EL.STONE, 'ICE': EL.ICE, 'SPONGE': EL.SPONGE,
+      'RUBBER': EL.WOOD, 'BARREL': EL.BOMB, 'GEAR': EL.STONE, 'RAGDOLL': EL.WOOD
+    };
+
+    class PixelSandbox {
+      constructor(canvas) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.scale = 3; // 1 cell = 3x3 screen pixels
+
+        this.width = this.canvas.width = Math.max(1, window.innerWidth || 800);
+        this.height = this.canvas.height = Math.max(1, window.innerHeight || 600);
+
+        this.cols = Math.floor(this.width / this.scale);
+        this.rows = Math.floor(this.height / this.scale);
+
+        this.grid = new Uint8Array(this.cols * this.rows);
+        this.updated = new Uint8Array(this.cols * this.rows);
+
+        this.offCanvas = document.createElement('canvas');
+        this.offCanvas.width = this.cols;
+        this.offCanvas.height = this.rows;
+        this.offCtx = this.offCanvas.getContext('2d');
+        this.offImgData = this.offCtx.createImageData(this.cols, this.rows);
+
+        this.gravityDir = 1; // 1 = down, -1 = up, 0 = zero-g
+        this.paused = false;
+        this.crispMode = true;
+        this.frameId = 1;
+
+        this.activeTool = 'liquid';
+        this.activeType = EL.WATER;
+        this.isMouseDown = false;
+        this.mousePos = { x: 0, y: 0 };
+        this.prevMousePos = { x: 0, y: 0 };
+        this.wallStartPos = null;
+
+        this.brushSize = 5; // Adjustable brush radius (pixels)
+        this.subSteps = 2;  // Adjustable simulation fall speed (sub-steps per tick)
+
+        this.fps = 60;
+        this.frameCount = 0;
+        this.fpsTimer = performance.now();
+        this.activePixelCount = 0;
+
+        this.initEvents();
+      }
+
+      resize() {
+        this.width = this.canvas.width = Math.max(1, window.innerWidth || 800);
+        this.height = this.canvas.height = Math.max(1, window.innerHeight || 600);
+        this.cols = Math.floor(this.width / this.scale);
+        this.rows = Math.floor(this.height / this.scale);
+        this.grid = new Uint8Array(this.cols * this.rows);
+        this.updated = new Uint8Array(this.cols * this.rows);
+        this.offCanvas.width = this.cols;
+        this.offCanvas.height = this.rows;
+        this.offImgData = this.offCtx.createImageData(this.cols, this.rows);
+      }
+
+      initEvents() {
+        window.addEventListener('resize', () => this.resize());
+
+        const getPos = (e) => {
+          const rect = this.canvas.getBoundingClientRect();
+          const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+          const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+          return {
+            gx: Math.floor((clientX - rect.left) / this.scale),
+            gy: Math.floor((clientY - rect.top) / this.scale),
+            x: clientX - rect.left,
+            y: clientY - rect.top
+          };
+        };
+
+        const handleStart = (e) => {
+          audioSynth.init();
+          this.isMouseDown = true;
+          this.mousePos = getPos(e);
+          this.prevMousePos = { ...this.mousePos };
+          if (this.activeTool === 'wall' || this.activeTool === 'glass') {
+            this.wallStartPos = { ...this.mousePos };
+          }
+        };
+
+        const handleMove = (e) => {
+          this.prevMousePos = { ...this.mousePos };
+          this.mousePos = getPos(e);
+        };
+
+        const handleEnd = () => {
+          if (this.isMouseDown && (this.activeTool === 'wall' || this.activeTool === 'glass') && this.wallStartPos) {
+            this.drawLine(this.wallStartPos.gx, this.wallStartPos.gy, this.mousePos.gx, this.mousePos.gy, this.activeTool === 'glass' ? EL.GLASS : EL.WALL);
+            this.wallStartPos = null;
+          }
+          this.isMouseDown = false;
+        };
+
+        this.canvas.addEventListener('mousedown', handleStart);
+        this.canvas.addEventListener('mousemove', handleMove);
+        window.addEventListener('mouseup', handleEnd);
+        this.canvas.addEventListener('touchstart', handleStart, { passive: false });
+        this.canvas.addEventListener('touchmove', handleMove, { passive: false });
+        window.addEventListener('touchend', handleEnd);
+      }
+
+      setCell(gx, gy, type) {
+        if (gx < 0 || gx >= this.cols || gy < 0 || gy >= this.rows) return;
+        this.grid[gy * this.cols + gx] = type;
+      }
+
+      paintCircle(gx, gy, radius, type) {
+        audioSynth.playSplash();
+        for (let dy = -radius; dy <= radius; dy++) {
+          for (let dx = -radius; dx <= radius; dx++) {
+            if (dx * dx + dy * dy <= radius * radius) {
+              this.setCell(gx + dx, gy + dy, type);
+            }
+          }
+        }
+      }
+
+      applyInRadius(gx, gy, radius, callback) {
+        const r2 = radius * radius;
+        const minX = Math.max(0, Math.floor(gx - radius));
+        const maxX = Math.min(this.cols - 1, Math.ceil(gx + radius));
+        const minY = Math.max(0, Math.floor(gy - radius));
+        const maxY = Math.min(this.rows - 1, Math.ceil(gy + radius));
+
+        for (let y = minY; y <= maxY; y++) {
+          for (let x = minX; x <= maxX; x++) {
+            const dx = x - gx;
+            const dy = y - gy;
+            if (dx * dx + dy * dy <= r2) {
+              const idx = y * this.cols + x;
+              callback(this.grid[idx], x, y);
+            }
+          }
+        }
+      }
+
+      drawLine(x0, y0, x1, y1, type) {
+        const dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0);
+        const sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+        let err = dx - dy;
+        while (true) {
+          this.setCell(x0, y0, type);
+          if (x0 === x1 && y0 === y1) break;
+          const e2 = 2 * err;
+          if (e2 > -dy) { err -= dy; x0 += sx; }
+          if (e2 < dx) { err += dx; y0 += sy; }
+        }
+      }
+
+      updateTools() {
+        if (!this.isMouseDown) return;
+        const pos = this.mousePos;
+        const bSize = this.brushSize || 5;
+
+        if (this.activeTool === 'liquid' || this.activeTool === 'object') {
+          this.paintCircle(pos.gx, pos.gy, bSize, this.activeType);
+        } else if (this.activeTool === 'hose') {
+          this.paintCircle(pos.gx, pos.gy, Math.max(2, Math.floor(bSize * 1.2)), this.activeType);
+        } else if (this.activeTool === 'eraser') {
+          this.paintCircle(pos.gx, pos.gy, Math.max(4, bSize * 2), EL.EMPTY);
+        } else if (this.activeTool === 'heat_laser') {
+          audioSynth.playSizzle();
+          this.applyInRadius(pos.gx, pos.gy, bSize * 2, (type, gx, gy) => {
+            if (type === EL.ICE) this.setCell(gx, gy, EL.WATER);
+            else if (type === EL.WATER) this.setCell(gx, gy, EL.STEAM);
+            else if (type === EL.WOOD) this.setCell(gx, gy, EL.FIRE);
+            else if (type === EL.BOMB) this.triggerExplosion(gx, gy);
+          });
+        } else if (this.activeTool === 'freeze_ray') {
+          this.applyInRadius(pos.gx, pos.gy, bSize * 2, (type, gx, gy) => {
+            if (type === EL.WATER) this.setCell(gx, gy, EL.ICE);
+            else if (type === EL.LAVA) this.setCell(gx, gy, EL.STONE);
+          });
+        } else if (this.activeTool === 'vortex' || this.activeTool === 'hand' || this.activeTool === 'fan') {
+          this.applyInRadius(pos.gx, pos.gy, bSize * 2.5, (type, gx, gy) => {
+            if (PROPS[type].isLiquid && Math.random() < 0.3) {
+              const targetGx = gx + (Math.random() < 0.5 ? 1 : -1);
+              if (targetGx >= 0 && targetGx < this.cols && this.grid[gy * this.cols + targetGx] === EL.EMPTY) {
+                this.grid[gy * this.cols + targetGx] = type;
+                this.grid[gy * this.cols + gx] = EL.EMPTY;
+              }
+            }
+          });
+        }
+      }
+
+      triggerExplosion(gx, gy) {
+        audioSynth.playExplosion();
+        this.paintCircle(gx, gy, 14, EL.FIRE);
+      }
+
+      step() {
+        if (this.paused) return;
+        this.updateTools();
+
+        // Run sub-steps based on fall speed setting
+        const iterations = Math.max(1, this.subSteps || 2);
+        for (let s = 0; s < iterations; s++) {
+          this.singleStep();
+        }
+      }
+
+      singleStep() {
+        this.frameId++;
+        this.updated.fill(0);
+
+        const cols = this.cols;
+        const rows = this.rows;
+        const g = this.grid;
+        const up = this.updated;
+        const fid = this.frameId;
+
+        let activeCount = 0;
+
+        // Iterate bottom-to-top for liquid & solid falling mechanics
+        for (let y = rows - 1; y >= 0; y--) {
+          const dir = Math.random() < 0.5 ? 1 : -1;
+          const startX = dir === 1 ? 0 : cols - 1;
+          const endX = dir === 1 ? cols : -1;
+
+          for (let x = startX; x !== endX; x += dir) {
+            const idx = y * cols + x;
+            const type = g[idx];
+            if (type === EL.EMPTY) continue;
+
+            activeCount++;
+            if (up[idx] === fid) continue;
+
+            const p = PROPS[type];
+
+            // --- GAS SIMULATION (STEAM / FIRE) ---
+            if (p.isGas) {
+              // Immediately dissipate gas reaching top ceiling edge (y <= 2) to prevent top accumulation
+              if (y <= 2) {
+                g[idx] = EL.EMPTY;
+                continue;
+              }
+              if (y > 0) {
+                const upIdx = (y - 1) * cols + x;
+                if (g[upIdx] === EL.EMPTY) {
+                  g[upIdx] = type; g[idx] = EL.EMPTY; up[upIdx] = fid;
+                } else if (PROPS[g[upIdx]].isLiquid) {
+                  g[idx] = g[upIdx]; g[upIdx] = type; up[upIdx] = fid;
+                } else {
+                  const side = Math.random() < 0.5 ? 1 : -1;
+                  const diagIdx = (y - 1) * cols + (x + side);
+                  if (x + side >= 0 && x + side < cols && g[diagIdx] === EL.EMPTY) {
+                    g[diagIdx] = type; g[idx] = EL.EMPTY; up[diagIdx] = fid;
+                  }
+                }
+              }
+              // Dissipate fire quickly, and dissipate steam naturally over time
+              if (type === EL.FIRE && Math.random() < 0.2) {
+                g[idx] = EL.EMPTY;
+              } else if (type === EL.STEAM) {
+                if (Math.random() < 0.01) {
+                  g[idx] = EL.EMPTY; // Natural mid-air evaporation
+                }
+              }
+              continue;
+            }
+
+            // --- MOVABLE SOLID PHYSICS (STONE, WOOD, ICE, BOMB, SPONGE) ---
+            if (p.isSolid) {
+              if (!p.isMovable) continue; // Fixed walls stay in place
+
+              const grav = this.gravityDir;
+              const density = p.density || 1.5;
+
+              if (grav === 1 && y < rows - 1) {
+                const downIdx = (y + 1) * cols + x;
+                const downType = g[downIdx];
+
+                // Fall through empty space
+                if (downType === EL.EMPTY) {
+                  g[downIdx] = type; g[idx] = EL.EMPTY; up[downIdx] = fid;
+                  continue;
+                }
+                // Sink through lighter liquids
+                else if (PROPS[downType].isLiquid && density > PROPS[downType].density) {
+                  g[idx] = downType; g[downIdx] = type; up[downIdx] = fid; up[idx] = fid;
+                  continue;
+                }
+                // Slide down steep piles
+                else {
+                  const side = Math.random() < 0.5 ? 1 : -1;
+                  const d1 = (y + 1) * cols + (x + side);
+                  const d2 = (y + 1) * cols + (x - side);
+                  if (x + side >= 0 && x + side < cols && g[d1] === EL.EMPTY) {
+                    g[d1] = type; g[idx] = EL.EMPTY; up[d1] = fid;
+                    continue;
+                  } else if (x - side >= 0 && x - side < cols && g[d2] === EL.EMPTY) {
+                    g[d2] = type; g[idx] = EL.EMPTY; up[d2] = fid;
+                    continue;
+                  }
+                }
+              } else if (grav === -1 && y > 0) {
+                const upIdx = (y - 1) * cols + x;
+                const upType = g[upIdx];
+                if (upType === EL.EMPTY) {
+                  g[upIdx] = type; g[idx] = EL.EMPTY; up[upIdx] = fid;
+                  continue;
+                }
+              }
+
+              // Float up if submerged in denser liquid
+              if (y > 0 && grav === 1) {
+                const upIdx = (y - 1) * cols + x;
+                const upType = g[upIdx];
+                if (PROPS[upType].isLiquid && density < PROPS[upType].density) {
+                  g[idx] = upType; g[upIdx] = type; up[upIdx] = fid; up[idx] = fid;
+                  continue;
+                }
+              }
+
+              continue;
+            }
+
+            // --- LIQUID PHYSICS (CELLULAR AUTOMATA) ---
+            if (p.isLiquid) {
+              // Top boundary safety: clear liquid overflow at y = 0 if canvas fills to top
+              if (y === 0) {
+                g[idx] = EL.EMPTY;
+                continue;
+              }
+
+              // Check Chemical Reactions
+              if (this.checkReactions(x, y, idx, type)) continue;
+
+              const grav = this.gravityDir;
+
+              if (grav === 1 && y < rows - 1) {
+                const downIdx = (y + 1) * cols + x;
+                const downType = g[downIdx];
+
+                // 1. Direct Downward Movement or Density Swapping
+                if (downType === EL.EMPTY) {
+                  g[downIdx] = type; g[idx] = EL.EMPTY; up[downIdx] = fid;
+                  continue;
+                } else if (PROPS[downType].isLiquid && downType !== type && p.density > PROPS[downType].density) {
+                  g[idx] = downType; g[downIdx] = type; up[downIdx] = fid; up[idx] = fid;
+                  continue;
+                }
+
+                // 2. Diagonal Slide Down Slopes
+                const side = Math.random() < 0.5 ? 1 : -1;
+                const d1 = (y + 1) * cols + (x + side);
+                const d2 = (y + 1) * cols + (x - side);
+
+                if (x + side >= 0 && x + side < cols && (g[d1] === EL.EMPTY || (PROPS[g[d1]].isLiquid && g[d1] !== type && p.density > PROPS[g[d1]].density))) {
+                  const targetType = g[d1];
+                  g[d1] = type; g[idx] = targetType; up[d1] = fid; up[idx] = fid;
+                  continue;
+                } else if (x - side >= 0 && x - side < cols && (g[d2] === EL.EMPTY || (PROPS[g[d2]].isLiquid && g[d2] !== type && p.density > PROPS[g[d2]].density))) {
+                  const targetType = g[d2];
+                  g[d2] = type; g[idx] = targetType; up[d2] = fid; up[idx] = fid;
+                  continue;
+                }
+              } else if (grav === -1 && y > 0) {
+                const upIdx = (y - 1) * cols + x;
+                const upType = g[upIdx];
+                if (upType === EL.EMPTY) {
+                  g[upIdx] = type; g[idx] = EL.EMPTY; up[upIdx] = fid;
+                  continue;
+                } else if (PROPS[upType].isLiquid && upType !== type && p.density > PROPS[upType].density) {
+                  g[idx] = upType; g[upIdx] = type; up[upIdx] = fid; up[idx] = fid;
+                  continue;
+                }
+              }
+
+              // 3. Pressure-based Hydrostatic Horizontal Dispersion
+              // Calculate hydrostatic pressure from liquid stacked directly above
+              let pressure = 0;
+              for (let h = 1; h <= 4; h++) {
+                if (y - h >= 0 && PROPS[g[(y - h) * cols + x]].isLiquid) pressure++;
+                else break;
+              }
+
+              const disp = Math.min(3, (p.dispersion || 1) + (pressure > 2 ? 1 : 0));
+              if (pressure > 0 || Math.random() < 0.6) {
+                const sideDir = Math.random() < 0.5 ? 1 : -1;
+                let moved = false;
+
+                for (let d = 1; d <= disp; d++) {
+                  const nx = x + sideDir * d;
+                  if (nx < 0 || nx >= cols) break;
+                  const targetIdx = y * cols + nx;
+                  if (g[targetIdx] === EL.EMPTY) {
+                    g[targetIdx] = type; g[idx] = EL.EMPTY; up[targetIdx] = fid;
+                    moved = true;
+                    break;
+                  } else {
+                    // Blocked by any non-empty pixel — stop searching immediately to prevent tunneling
+                    break;
+                  }
+                }
+
+                if (!moved) {
+                  const altDir = -sideDir;
+                  for (let d = 1; d <= disp; d++) {
+                    const nx = x + altDir * d;
+                    if (nx < 0 || nx >= cols) break;
+                    const targetIdx = y * cols + nx;
+                    if (g[targetIdx] === EL.EMPTY) {
+                      g[targetIdx] = type; g[idx] = EL.EMPTY; up[targetIdx] = fid;
+                      break;
+                    } else {
+                      // Blocked — stop searching
+                      break;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        this.activePixelCount = activeCount;
+      }
+
+      checkReactions(x, y, idx, type) {
+        const neighbors = [
+          { nx: x, ny: y - 1 }, { nx: x, ny: y + 1 },
+          { nx: x - 1, ny: y }, { nx: x + 1, ny: y }
+        ];
+
+        for (const nb of neighbors) {
+          if (nb.nx < 0 || nb.nx >= this.cols || nb.ny < 0 || nb.ny >= this.rows) continue;
+          const nIdx = nb.ny * this.cols + nb.nx;
+          const nType = this.grid[nIdx];
+
+          if (type === EL.LAVA) {
+            if (nType === EL.WATER) {
+              audioSynth.playSizzle();
+              if (nb.ny > y) {
+                this.grid[nIdx] = EL.STONE;
+                this.grid[idx] = EL.STEAM;
+              } else {
+                this.grid[nIdx] = EL.STEAM;
+                this.grid[idx] = EL.STONE;
+              }
+              return true;
+            } else if (nType === EL.OIL) {
+              audioSynth.playSizzle();
+              this.grid[nIdx] = EL.FIRE;
+              this.grid[idx] = EL.STONE;
+              return true;
+            } else if (nType === EL.WOOD || nType === EL.BOMB) {
+              if (nType === EL.BOMB) this.triggerExplosion(nb.nx, nb.ny);
+              else this.grid[nIdx] = EL.FIRE;
+            }
+          } else if (type === EL.ACID) {
+            if (nType === EL.WOOD || nType === EL.STONE || nType === EL.ICE) {
+              audioSynth.playSizzle();
+              this.grid[nIdx] = EL.STEAM;
+              this.grid[idx] = EL.EMPTY;
+              return true;
+            }
+          } else if (type === EL.NITROGEN) {
+            if (nType === EL.WATER) {
+              this.grid[nIdx] = EL.ICE;
+              break;
+            }
+          } else if (type === EL.SPONGE) {
+            if (nType === EL.WATER) {
+              this.grid[nIdx] = EL.EMPTY;
+            }
+          }
+        }
+        return false;
+      }
+
+      draw() {
+        const cols = this.cols;
+        const rows = this.rows;
+        const g = this.grid;
+        const data = this.offImgData.data;
+
+        // Render grid to offscreen pixel buffer
+        let pixelPtr = 0;
+        for (let i = 0; i < cols * rows; i++) {
+          const type = g[i];
+          const c = PROPS[type].color;
+          data[pixelPtr]     = c[0];
+          data[pixelPtr + 1] = c[1];
+          data[pixelPtr + 2] = c[2];
+          data[pixelPtr + 3] = c[3];
+          pixelPtr += 4;
+        }
+
+        // Put image data onto offscreen canvas
+        this.offCtx.putImageData(this.offImgData, 0, 0);
+
+        // Safety check before drawImage
+        if (this.offCanvas.width > 0 && this.offCanvas.height > 0) {
+          this.ctx.imageSmoothingEnabled = !this.crispMode;
+          this.ctx.clearRect(0, 0, this.width, this.height);
+          this.ctx.drawImage(this.offCanvas, 0, 0, this.width, this.height);
+        }
+
+        // Draw Wall line preview if dragging
+        if (this.isMouseDown && (this.activeTool === 'wall' || this.activeTool === 'glass') && this.wallStartPos) {
+          this.ctx.strokeStyle = this.activeTool === 'glass' ? 'rgba(186,230,253,0.8)' : 'rgba(148,163,184,0.8)';
+          this.ctx.lineWidth = 3;
+          this.ctx.beginPath();
+          this.ctx.moveTo(this.wallStartPos.x, this.wallStartPos.y);
+          this.ctx.lineTo(this.mousePos.x, this.mousePos.y);
+          this.ctx.stroke();
+        }
+
+        // Draw Tool Brush Cursor Overlay
+        if (this.mousePos.x > 0 && this.mousePos.y > 0) {
+          this.ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+          this.ctx.lineWidth = 1.5;
+          this.ctx.beginPath();
+          const rScreen = (this.brushSize || 5) * this.scale;
+          this.ctx.arc(this.mousePos.x, this.mousePos.y, rScreen, 0, Math.PI * 2);
+          this.ctx.stroke();
+        }
+
+        // Update HUD Stats
+        this.frameCount++;
+        const now = performance.now();
+        if (now - this.fpsTimer >= 500) {
+          this.fps = Math.round((this.frameCount * 1000) / (now - this.fpsTimer));
+          this.frameCount = 0;
+          this.fpsTimer = now;
+          const fpsEl = document.getElementById('stat-fps');
+          const countEl = document.getElementById('stat-particles');
+          if (fpsEl) fpsEl.textContent = this.fps;
+          if (countEl) countEl.textContent = this.activePixelCount.toLocaleString();
+        }
+      }
+
+      loadPreset(presetKey) {
+        this.grid.fill(EL.EMPTY);
+        const midX = Math.floor(this.cols / 2);
+        const midY = Math.floor(this.rows / 2);
+
+        if (presetKey === 'density_tower') {
+          for (let y = this.rows - 60; y < this.rows - 5; y++) {
+            for (let x = midX - 80; x < midX + 80; x++) {
+              if (y < this.rows - 45) this.setCell(x, y, EL.OIL);
+              else if (y < this.rows - 30) this.setCell(x, y, EL.WATER);
+              else if (y < this.rows - 15) this.setCell(x, y, EL.HONEY);
+              else this.setCell(x, y, EL.MERCURY);
+            }
+          }
+          this.drawLine(midX - 81, this.rows - 65, midX - 81, this.rows - 4, EL.WALL);
+          this.drawLine(midX + 80, this.rows - 65, midX + 80, this.rows - 4, EL.WALL);
+          this.drawLine(midX - 81, this.rows - 4, midX + 80, this.rows - 4, EL.WALL);
+        } else if (presetKey === 'lava_ocean') {
+          for (let y = this.rows - 45; y < this.rows - 5; y++) {
+            for (let x = 10; x < this.cols - 10; x++) {
+              this.setCell(x, y, EL.WATER);
+            }
+          }
+          for (let y = 5; y < 25; y++) {
+            for (let x = midX - 15; x < midX + 15; x++) {
+              this.setCell(x, y, EL.LAVA);
+            }
+          }
+        } else if (presetKey === 'acid_pit') {
+          this.drawLine(midX - 60, midY - 20, midX - 30, midY + 40, EL.WALL);
+          this.drawLine(midX - 30, midY + 40, midX + 30, midY + 40, EL.WALL);
+          this.drawLine(midX + 30, midY + 40, midX + 60, midY - 20, EL.WALL);
+          for (let y = midY; y < midY + 40; y++) {
+            for (let x = midX - 28; x < midX + 28; x++) {
+              this.setCell(x, y, EL.ACID);
+            }
+          }
+          this.paintCircle(midX - 10, midY - 30, 8, EL.WOOD);
+          this.paintCircle(midX + 10, midY - 45, 8, EL.STONE);
+        } else if (presetKey === 'bomb_demo') {
+          for (let y = this.rows - 40; y < this.rows - 5; y++) {
+            for (let x = midX - 40; x < midX + 40; x++) {
+              if (Math.random() < 0.1) this.setCell(x, y, EL.BOMB);
+              else this.setCell(x, y, EL.WOOD);
+            }
+          }
+          this.paintCircle(midX, 20, 10, EL.LAVA);
+        } else if (presetKey === 'zerog_orbs') {
+          this.gravityDir = 0;
+          this.paintCircle(midX - 30, midY, 20, EL.WATER);
+          this.paintCircle(midX + 30, midY, 20, EL.OIL);
+          this.paintCircle(midX, midY - 30, 15, EL.LAVA);
+        }
+      }
+    }
+
+    // App Initialization & UI Wiring
+    window.addEventListener('load', () => {
+      const canvas = document.getElementById('physics-canvas');
+      const sandbox = new PixelSandbox(canvas);
+
+      function loop() {
+        sandbox.step();
+        sandbox.draw();
+        requestAnimationFrame(loop);
+      }
+      loop();
+
+      // UI Tool Selector Buttons
+      document.querySelectorAll('.tool-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+
+          const tool = btn.dataset.tool;
+          sandbox.activeTool = tool;
+
+          if (btn.dataset.type && TYPE_KEY_MAP[btn.dataset.type]) {
+            sandbox.activeType = TYPE_KEY_MAP[btn.dataset.type];
+          }
+
+          document.querySelectorAll('.dock-btn').forEach(db => {
+            if (db.dataset.tool === tool) db.classList.add('active');
+            else db.classList.remove('active');
+          });
+        });
+      });
+
+      // Preset Selector
+      const presetSelect = document.getElementById('preset-selector');
+      if (presetSelect) {
+        presetSelect.addEventListener('change', (e) => {
+          sandbox.loadPreset(e.target.value);
+        });
+      }
+
+      // Render Mode Toggle
+      const btnRender = document.getElementById('btn-render-mode');
+      const labelRender = document.getElementById('label-render-mode');
+      if (btnRender) {
+        btnRender.addEventListener('click', () => {
+          sandbox.crispMode = !sandbox.crispMode;
+          if (labelRender) labelRender.textContent = sandbox.crispMode ? 'Crisp Pixels' : 'Retro Smooth';
+        });
+      }
+
+      // Audio Toggle
+      const btnAudio = document.getElementById('btn-audio');
+      const iconAudio = document.getElementById('icon-audio');
+      if (btnAudio) {
+        btnAudio.addEventListener('click', () => {
+          audioSynth.muted = !audioSynth.muted;
+          if (iconAudio) {
+            iconAudio.className = audioSynth.muted ? 'fa-solid fa-volume-xmark text-rose-400 text-xs' : 'fa-solid fa-volume-high text-emerald-400 text-xs';
+          }
+        });
+      }
+
+      // Dock Pause & Clear Buttons
+      const btnPause = document.getElementById('btn-dock-pause');
+      const iconPause = document.getElementById('icon-dock-pause');
+      if (btnPause) {
+        btnPause.addEventListener('click', () => {
+          sandbox.paused = !sandbox.paused;
+          if (iconPause) {
+            iconPause.className = sandbox.paused ? 'fa-solid fa-play text-xs text-emerald-400' : 'fa-solid fa-pause text-xs';
+          }
+        });
+      }
+      const btnClear = document.getElementById('btn-dock-clear');
+      if (btnClear) {
+        btnClear.addEventListener('click', () => {
+          sandbox.grid.fill(EL.EMPTY);
+        });
+      }
+
+      // Drawer Collapse & Toggle Controls
+      const drawer = document.getElementById('summon-drawer');
+      const btnToggleDrawer = document.getElementById('btn-toggle-drawer');
+      const btnCloseDrawer = document.getElementById('btn-close-drawer');
+      const btnCollapseDrawer = document.getElementById('btn-collapse-drawer');
+      const drawerBody = document.getElementById('drawer-body');
+      const iconCollapse = document.getElementById('icon-collapse');
+
+      const toggleDrawer = () => {
+        if (!drawer) return;
+        const isHidden = drawer.classList.contains('hidden');
+        if (isHidden) {
+          drawer.classList.remove('hidden');
+          if (btnToggleDrawer) btnToggleDrawer.classList.add('active');
+        } else {
+          drawer.classList.add('hidden');
+          if (btnToggleDrawer) btnToggleDrawer.classList.remove('active');
+        }
+      };
+
+      if (btnToggleDrawer) btnToggleDrawer.addEventListener('click', toggleDrawer);
+      if (btnCloseDrawer) btnCloseDrawer.addEventListener('click', toggleDrawer);
+
+      if (btnCollapseDrawer && drawerBody && iconCollapse) {
+        btnCollapseDrawer.addEventListener('click', () => {
+          const isCollapsed = drawerBody.classList.contains('hidden');
+          if (isCollapsed) {
+            drawerBody.classList.remove('hidden');
+            iconCollapse.className = 'fa-solid fa-chevron-up text-xs';
+          } else {
+            drawerBody.classList.add('hidden');
+            iconCollapse.className = 'fa-solid fa-chevron-down text-xs';
+          }
+        });
+      }
+
+      // Keyboard Hotkeys
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'm' || e.key === 'M') toggleDrawer();
+        if (e.key === 'c' || e.key === 'C') sandbox.grid.fill(EL.EMPTY);
+        if (e.key === ' ') {
+          sandbox.paused = !sandbox.paused;
+          if (iconPause) {
+            iconPause.className = sandbox.paused ? 'fa-solid fa-play text-xs text-emerald-400' : 'fa-solid fa-pause text-xs';
+          }
+        }
+      });
+
+      // Draggable Summon Drawer Header
+      const drawerHeader = document.getElementById('drawer-header');
+      if (drawerHeader && drawer) {
+        let isDragging = false, offsetX = 0, offsetY = 0;
+
+        drawerHeader.addEventListener('mousedown', (e) => {
+          if (e.target.closest('button')) return;
+          isDragging = true;
+          const rect = drawer.getBoundingClientRect();
+          offsetX = e.clientX - rect.left;
+          offsetY = e.clientY - rect.top;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+          if (!isDragging) return;
+          drawer.style.left = `${e.clientX - offsetX}px`;
+          drawer.style.top = `${e.clientY - offsetY}px`;
+          drawer.style.right = 'auto';
+        });
+
+        window.addEventListener('mouseup', () => { isDragging = false; });
+      }
+
+      // Drawer Category Tabs
+      const tabs = document.querySelectorAll('.drawer-tab');
+      const panes = document.querySelectorAll('.tab-pane');
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          tabs.forEach(t => {
+            t.classList.remove('active', 'bg-slate-800', 'text-slate-300');
+            t.classList.add('text-slate-400');
+          });
+          panes.forEach(p => p.classList.add('hidden'));
+
+          tab.classList.add('active', 'bg-slate-800', 'text-slate-300');
+          tab.classList.remove('text-slate-400');
+          const targetPane = document.getElementById(`drawer-tab-${tab.dataset.tab}`);
+          if (targetPane) targetPane.classList.remove('hidden');
+        });
+      });
+
+      // Gravity Buttons
+      const btnGravNormal = document.getElementById('btn-grav-normal');
+      const btnGravZero = document.getElementById('btn-grav-zero');
+      const btnGravInvert = document.getElementById('btn-grav-invert');
+      if (btnGravNormal) btnGravNormal.addEventListener('click', () => { sandbox.gravityDir = 1; });
+      if (btnGravZero) btnGravZero.addEventListener('click', () => { sandbox.gravityDir = 0; });
+      if (btnGravInvert) btnGravInvert.addEventListener('click', () => { sandbox.gravityDir = -1; });
+
+      // Sliders Controls Wiring
+      const sliderBrush = document.getElementById('slider-brush');
+      const valBrush = document.getElementById('val-brush');
+      if (sliderBrush && valBrush) {
+        sliderBrush.addEventListener('input', (e) => {
+          sandbox.brushSize = parseInt(e.target.value);
+          valBrush.textContent = `${sandbox.brushSize} px`;
+        });
+      }
+
+      const sliderSpeed = document.getElementById('slider-speed');
+      const valSpeed = document.getElementById('val-speed');
+      if (sliderSpeed && valSpeed) {
+        sliderSpeed.addEventListener('input', (e) => {
+          sandbox.subSteps = parseInt(e.target.value);
+          valSpeed.textContent = `${sandbox.subSteps}x Speed`;
+        });
+      }
+    });
+  </script>
+</body>
+</html>
