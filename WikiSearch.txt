@@ -1,0 +1,16 @@
+------------------------- WikiSearch ---------------------------
+
+WikiSearch is a fast, reliable Wikipedia search engine designed
+for work and research. It features the main engine, where
+you can search articles, as well as a dictionary function for
+quick reference.
+
+------------------------ KEY FUNCTIONS -------------------------
+
+1. Built-in dictionary - Search up any word using the Oxford Dictionary.
+2. Compare articles - Select any two article side by side to compare.
+3. UI Change - Change UI and font family.
+
+-----------------------------------------------------------------
+
+Thank you for using WikiSearch.
