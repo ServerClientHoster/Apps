@@ -1,0 +1,2844 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FlashPort Drive - High Performance Workspace</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            slate: {
+              750: '#263345',
+              850: '#131c2a',
+              950: '#0b111a',
+            },
+            accent: {
+              50: '#eff6ff',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+            mono: ['JetBrains Mono', 'Fira Code', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  
+  <!-- Marked.js for Markdown Rendering -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/11.1.1/marked.min.js"></script>
+
+  <!-- JSZip for Zip Archiving -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+  <style>
+    /* Native OS Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.25);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(148, 163, 184, 0.45);
+    }
+    
+    /* Context menu positioning */
+    #contextMenu {
+      display: none;
+      position: fixed;
+      z-index: 9999;
+    }
+
+    /* Drop stage overlay */
+    .drop-active {
+      opacity: 1 !important;
+      pointer-events: auto !important;
+    }
+
+    /* Selection highlight */
+    .item-card.selected {
+      border-color: #3b82f6 !important;
+      background-color: rgba(59, 130, 246, 0.08) !important;
+    }
+    .dark .item-card.selected {
+      background-color: rgba(59, 130, 246, 0.15) !important;
+    }
+
+    /* Drag over targets */
+    .drag-over-target {
+      outline: 2px dashed #3b82f6 !important;
+      outline-offset: -2px;
+      background-color: rgba(59, 130, 246, 0.2) !important;
+      transform: scale(1.02);
+      transition: transform 0.1s ease;
+    }
+  </style>
+</head>
+
+<body class="bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans antialiased h-screen overflow-hidden flex flex-col select-none transition-colors duration-150">
+
+  <!-- TOP APP NAVBAR -->
+  <header class="h-14 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 px-4 flex items-center justify-between shrink-0 z-30">
+    
+    <!-- Brand / Drive Title -->
+    <div class="flex items-center space-x-3 w-60 shrink-0">
+      <div class="w-8 h-8 rounded-lg bg-slate-900 dark:bg-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+        <i class="fa-solid fa-hard-drive"></i>
+      </div>
+      <div>
+        <h1 class="font-bold text-sm tracking-tight text-slate-900 dark:text-slate-100">
+          FlashPort <span class="text-blue-500 font-medium">Drive</span>
+        </h1>
+        <p class="text-[10px] text-slate-400 font-mono -mt-0.5">Desktop Storage v3.2</p>
+      </div>
+    </div>
+
+    <!-- Search Engine -->
+    <div class="flex-1 max-w-xl mx-4">
+      <div class="relative flex items-center">
+        <i class="fa-solid fa-magnifying-glass absolute left-3 text-slate-400 text-xs"></i>
+        <input type="text" id="searchInput" placeholder="Search files, tags, formats... (Press '/' to focus)" 
+          class="w-full pl-9 pr-8 py-1.5 text-xs bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/70 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all placeholder-slate-400" />
+        <button id="clearSearchBtn" class="hidden absolute right-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Action Toolbar (Right) -->
+    <div class="flex items-center space-x-2">
+      <!-- Create Note -->
+      <button id="newNoteBtn" title="Create Text/MD Note" 
+        class="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all flex items-center space-x-1.5">
+        <i class="fa-solid fa-file-pen text-blue-500"></i>
+        <span class="hidden sm:inline">New Note</span>
+      </button>
+
+      <!-- Import Dropdown -->
+      <div class="relative inline-block text-left">
+        <button id="uploadMenuBtn" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-500 text-white shadow-sm transition-all flex items-center space-x-1.5">
+          <i class="fa-solid fa-upload text-xs"></i>
+          <span>Import</span>
+          <i class="fa-solid fa-chevron-down text-[10px]"></i>
+        </button>
+
+        <div id="uploadDropdown" class="hidden absolute right-0 mt-1 w-52 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl py-1 z-50 text-xs">
+          <button id="uploadFilesChoice" class="w-full text-left px-3.5 py-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2">
+            <i class="fa-solid fa-file text-blue-500 w-4"></i>
+            <div>
+              <div class="font-medium">Upload Files</div>
+              <div class="text-[10px] text-slate-400">Supports up to 1GB+ files</div>
+            </div>
+          </button>
+          <button id="uploadFolderChoice" class="w-full text-left px-3.5 py-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2">
+            <i class="fa-solid fa-folder-open text-amber-500 w-4"></i>
+            <div>
+              <div class="font-medium">Upload Folder</div>
+              <div class="text-[10px] text-slate-400">Preserves nested subfolders</div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- New Folder -->
+      <button id="newFolderBtn" title="Create Folder"
+        class="p-1.5 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-all">
+        <i class="fa-solid fa-folder-plus text-sm"></i>
+      </button>
+
+      <!-- Backup / Restore Menu -->
+      <div class="relative">
+        <button id="backupMenuBtn" title="Catalog Backup & Storage Tools" class="p-1.5 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-all">
+          <i class="fa-solid fa-database text-sm"></i>
+        </button>
+        <div id="backupDropdown" class="hidden absolute right-0 mt-1 w-48 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl py-1 z-50 text-xs">
+          <button id="exportBackupBtn" class="w-full text-left px-3.5 py-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2">
+            <i class="fa-solid fa-file-export text-emerald-500 w-4"></i>
+            <span>Export Catalog Backup</span>
+          </button>
+          <button id="importBackupBtn" class="w-full text-left px-3.5 py-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2">
+            <i class="fa-solid fa-file-import text-blue-500 w-4"></i>
+            <span>Restore Catalog JSON</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="h-4 w-px bg-slate-300 dark:bg-slate-800 mx-1"></div>
+
+      <!-- Theme Switcher -->
+      <button id="themeToggleBtn" title="Toggle Theme" class="p-1.5 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-all">
+        <i class="fa-solid fa-moon dark:hidden text-sm"></i>
+        <i class="fa-solid fa-sun hidden dark:block text-amber-400 text-sm"></i>
+      </button>
+
+      <!-- Keyboard Shortcuts -->
+      <button id="shortcutsBtn" title="Keyboard Shortcuts" class="p-1.5 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-all">
+        <i class="fa-solid fa-keyboard text-sm"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN WORKSPACE -->
+  <div class="flex-1 flex overflow-hidden">
+
+    <!-- LEFT SIDEBAR -->
+    <aside class="w-60 border-r border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 flex flex-col justify-between shrink-0 overflow-y-auto">
+      
+      <div class="p-3 space-y-5">
+        
+        <!-- Views Navigation -->
+        <div>
+          <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1 px-2">Navigation</div>
+          <nav class="space-y-0.5" id="navLinks">
+            <button data-target="root" class="nav-item w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-medium rounded-lg transition-all text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10">
+              <span class="flex items-center space-x-2">
+                <i class="fa-solid fa-hard-drive text-xs"></i>
+                <span>My Drive</span>
+              </span>
+              <span id="badgeMyDrive" class="text-[10px] px-1.5 py-0.2 rounded bg-blue-100 dark:bg-blue-950 font-mono">0</span>
+            </button>
+
+            <button data-target="starred" class="nav-item w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-medium rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-all">
+              <span class="flex items-center space-x-2">
+                <i class="fa-solid fa-star text-amber-400 text-xs"></i>
+                <span>Starred</span>
+              </span>
+              <span id="badgeStarred" class="text-[10px] px-1.5 py-0.2 rounded bg-slate-200 dark:bg-slate-800 font-mono">0</span>
+            </button>
+
+            <button data-target="recent" class="nav-item w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-medium rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-all">
+              <span class="flex items-center space-x-2">
+                <i class="fa-solid fa-clock-rotate-left text-indigo-400 text-xs"></i>
+                <span>Recent Files</span>
+              </span>
+            </button>
+
+            <button data-target="trash" class="nav-item w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-medium rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-all">
+              <span class="flex items-center space-x-2">
+                <i class="fa-solid fa-trash-can text-rose-500 text-xs"></i>
+                <span>Recycle Bin</span>
+              </span>
+              <span id="badgeTrash" class="text-[10px] px-1.5 py-0.2 rounded bg-slate-200 dark:bg-slate-800 font-mono">0</span>
+            </button>
+          </nav>
+        </div>
+
+        <!-- Categories -->
+        <div>
+          <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1 px-2">Categories</div>
+          <nav class="space-y-0.5">
+            <button data-category="doc" class="cat-item w-full flex items-center space-x-2 px-2.5 py-1.5 text-xs font-medium rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-all">
+              <i class="fa-solid fa-file-lines text-blue-500 w-4"></i>
+              <span>Documents</span>
+            </button>
+            <button data-category="image" class="cat-item w-full flex items-center space-x-2 px-2.5 py-1.5 text-xs font-medium rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-all">
+              <i class="fa-solid fa-image text-emerald-500 w-4"></i>
+              <span>Images</span>
+            </button>
+            <button data-category="media" class="cat-item w-full flex items-center space-x-2 px-2.5 py-1.5 text-xs font-medium rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-all">
+              <i class="fa-solid fa-film text-purple-500 w-4"></i>
+              <span>Audio & Video</span>
+            </button>
+            <button data-category="code" class="cat-item w-full flex items-center space-x-2 px-2.5 py-1.5 text-xs font-medium rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-all">
+              <i class="fa-solid fa-code text-cyan-500 w-4"></i>
+              <span>Code & Text</span>
+            </button>
+            <button data-category="archive" class="cat-item w-full flex items-center space-x-2 px-2.5 py-1.5 text-xs font-medium rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-all">
+              <i class="fa-solid fa-file-zipper text-amber-500 w-4"></i>
+              <span>Archives (.zip, ISO)</span>
+            </button>
+          </nav>
+        </div>
+
+        <!-- Custom Tags -->
+        <div>
+          <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1 px-2">Tags</div>
+          <div id="tagsListSidebar" class="flex flex-wrap gap-1 px-1">
+            <!-- Dynamic tags -->
+          </div>
+        </div>
+
+        <!-- Directory Tree -->
+        <div>
+          <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1 px-2">Directory Tree</div>
+          <div id="sidebarFolderTree" class="space-y-0.5 text-xs">
+            <!-- Dynamic Tree -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- BOTTOM PANEL: TRANSFER QUEUE & STORAGE MONITOR -->
+      <div class="border-t border-slate-200 dark:border-slate-800 bg-slate-100/60 dark:bg-slate-900/80 p-3 space-y-3">
+        
+        <!-- Transfer Progress Manager Widget -->
+        <div id="transferWidget" class="hidden bg-white dark:bg-slate-950 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
+          <div class="flex items-center justify-between text-[11px] font-semibold">
+            <span class="flex items-center space-x-1.5 text-blue-500">
+              <i class="fa-solid fa-spinner fa-spin text-xs"></i>
+              <span id="transferTitle">Uploading 0 files...</span>
+            </span>
+            <button id="cancelTransfersBtn" title="Cancel Transfers" class="text-slate-400 hover:text-rose-500 text-xs">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <div class="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+            <div id="transferProgressBar" class="bg-blue-600 h-full w-0 transition-all duration-150"></div>
+          </div>
+
+          <div class="flex justify-between text-[10px] text-slate-400 font-mono">
+            <span id="transferSpeed">0.0 MB/s</span>
+            <span id="transferEta">ETA: --s</span>
+          </div>
+        </div>
+
+        <!-- Real Storage Meter (navigator.storage.estimate) -->
+        <div>
+          <div class="flex items-center justify-between text-[11px] font-semibold mb-1">
+            <span class="text-slate-700 dark:text-slate-300">Browser Storage</span>
+            <span id="storagePercentText" class="text-blue-500 font-mono">0%</span>
+          </div>
+
+          <div class="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden flex mb-1.5">
+            <div id="barImages" class="bg-emerald-500 h-full w-0 transition-all" title="Images"></div>
+            <div id="barDocs" class="bg-blue-500 h-full w-0 transition-all" title="Documents"></div>
+            <div id="barMedia" class="bg-purple-500 h-full w-0 transition-all" title="Media"></div>
+            <div id="barCode" class="bg-cyan-500 h-full w-0 transition-all" title="Code"></div>
+            <div id="barOther" class="bg-amber-500 h-full w-0 transition-all" title="Other"></div>
+          </div>
+
+          <div class="flex justify-between text-[10px] text-slate-400 font-mono">
+            <span id="storageUsedText">0 B used</span>
+            <span id="storageQuotaText">Quota: --</span>
+          </div>
+        </div>
+
+        <button id="emptyTrashSidebarBtn" class="w-full py-1 text-[11px] text-rose-500 hover:text-rose-600 bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 font-medium rounded-lg transition-all flex items-center justify-center space-x-1">
+          <i class="fa-solid fa-broom text-xs"></i>
+          <span>Empty Recycle Bin</span>
+        </button>
+
+      </div>
+
+    </aside>
+
+    <!-- CENTER MAIN CANVAS -->
+    <main id="mainCanvas" class="flex-1 flex flex-col relative overflow-hidden bg-white dark:bg-slate-950">
+      
+      <!-- DROP OVERLAY -->
+      <div id="dropOverlay" class="absolute inset-0 z-40 bg-blue-600/90 text-white flex flex-col items-center justify-center space-y-3 opacity-0 pointer-events-none transition-all duration-150 border-4 border-dashed border-white/60 m-3 rounded-2xl">
+        <i class="fa-solid fa-cloud-arrow-up text-5xl animate-bounce"></i>
+        <div class="text-center">
+          <h2 class="text-xl font-bold">Drop Files or Nested Folders Here</h2>
+          <p class="text-xs text-blue-100 font-mono">IndexedDB 2MB Chunking Engine ready (1GB+ supported)</p>
+        </div>
+      </div>
+
+      <!-- BREADCRUMB & TOOLBAR -->
+      <div class="px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 bg-slate-50/50 dark:bg-slate-900/30 shrink-0">
+        
+        <!-- Breadcrumbs & Up Button -->
+        <div class="flex items-center space-x-1.5 overflow-x-auto py-0.5 flex-1 min-w-0">
+          <button id="upFolderBtn" title="Go up to parent folder" disabled class="p-1.5 text-slate-500 hover:text-blue-500 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 rounded-lg transition-all disabled:opacity-30 disabled:pointer-events-none shrink-0">
+            <i class="fa-solid fa-level-up-alt text-xs"></i>
+          </button>
+          <nav id="breadcrumbNav" class="flex items-center space-x-1.5 text-xs overflow-x-auto">
+            <!-- Dynamic Breadcrumb -->
+          </nav>
+        </div>
+
+        <!-- View Settings & Batch Controls -->
+        <div class="flex items-center space-x-2">
+          
+          <!-- BATCH TOOLBAR -->
+          <div id="batchBar" class="hidden items-center space-x-1.5 bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 px-2.5 py-1 rounded-lg">
+            <span id="batchCount" class="text-xs font-bold text-blue-600 dark:text-blue-400 mr-1">0 selected</span>
+            <button id="batchStarBtn" title="Star Selected" class="p-1 text-slate-600 dark:text-slate-300 hover:text-amber-400 text-xs">
+              <i class="fa-solid fa-star"></i>
+            </button>
+            <button id="batchMoveBtn" title="Move Selected" class="p-1 text-slate-600 dark:text-slate-300 hover:text-blue-500 text-xs">
+              <i class="fa-solid fa-folder-tree"></i>
+            </button>
+            <button id="batchDownloadBtn" title="Download ZIP Archive" class="p-1 text-slate-600 dark:text-slate-300 hover:text-emerald-500 text-xs">
+              <i class="fa-solid fa-file-zipper"></i>
+            </button>
+            <button id="batchDeleteBtn" title="Delete Selected" class="p-1 text-slate-600 dark:text-slate-300 hover:text-rose-500 text-xs">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+            <button id="batchClearBtn" title="Clear Selection" class="p-1 text-slate-400 hover:text-slate-600 text-xs">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <!-- Sort Select -->
+          <select id="sortSelect" class="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs rounded-lg px-2 py-1 text-slate-700 dark:text-slate-300 focus:outline-none">
+            <option value="name-asc">Name (A-Z)</option>
+            <option value="name-desc">Name (Z-A)</option>
+            <option value="date-desc">Newest First</option>
+            <option value="date-asc">Oldest First</option>
+            <option value="size-desc">Size (Largest)</option>
+            <option value="size-asc">Size (Smallest)</option>
+          </select>
+
+          <!-- Grid / List Switch -->
+          <div class="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
+            <button id="viewGridBtn" title="Grid View" class="px-2 py-1 text-xs rounded transition-all text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-700 shadow-sm">
+              <i class="fa-solid fa-border-all"></i>
+            </button>
+            <button id="viewListBtn" title="Dense List View" class="px-2 py-1 text-xs rounded transition-all text-slate-500 dark:text-slate-400">
+              <i class="fa-solid fa-list"></i>
+            </button>
+          </div>
+
+          <!-- Inspector Toggle -->
+          <button id="toggleInspectorBtn" title="Toggle File Inspector Drawer" class="p-1.5 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-all border border-slate-200 dark:border-slate-800">
+            <i class="fa-solid fa-circle-info text-xs"></i>
+          </button>
+
+        </div>
+
+      </div>
+
+      <!-- FILE EXPLORER CANVAS & INSPECTOR CONTAINER -->
+      <div class="flex-1 flex overflow-hidden">
+        
+        <!-- File Grid/List Canvas -->
+        <div id="explorerContainer" class="flex-1 overflow-y-auto p-4 relative">
+          
+          <!-- GRID VIEW -->
+          <div id="gridView" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+            <!-- Grid cards rendered dynamically -->
+          </div>
+
+          <!-- DENSE LIST VIEW TABLE -->
+          <div id="listView" class="hidden w-full">
+            <table class="w-full text-left text-xs">
+              <thead>
+                <tr class="text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800 font-semibold uppercase tracking-wider text-[10px]">
+                  <th class="py-2 px-2 w-7">
+                    <input type="checkbox" id="selectAllCheckbox" class="rounded border-slate-300 dark:border-slate-700 text-blue-600 focus:ring-0">
+                  </th>
+                  <th class="py-2 px-2">Name</th>
+                  <th class="py-2 px-2 hidden md:table-cell">Tags</th>
+                  <th class="py-2 px-2 font-mono">Size</th>
+                  <th class="py-2 px-2 hidden sm:table-cell">Chunks</th>
+                  <th class="py-2 px-2 hidden sm:table-cell">Modified</th>
+                  <th class="py-2 px-2 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="listTableBody" class="divide-y divide-slate-100 dark:divide-slate-800/50">
+                <!-- Rows rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- EMPTY STATE -->
+          <div id="emptyState" class="hidden h-full flex flex-col items-center justify-center text-center py-20">
+            <div class="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-slate-400 mb-3">
+              <i class="fa-solid fa-folder-open text-2xl"></i>
+            </div>
+            <h3 class="text-sm font-bold text-slate-700 dark:text-slate-300">This directory is empty</h3>
+            <p class="text-xs text-slate-400 max-w-sm mt-1 mb-4">Drag and drop 1GB+ files or nested directories anywhere, or write a note.</p>
+            <div class="flex items-center space-x-2">
+              <button onclick="document.getElementById('uploadFilesChoice').click()" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-500 text-white shadow-sm">
+                <i class="fa-solid fa-upload mr-1"></i> Import Files
+              </button>
+              <button onclick="document.getElementById('newNoteBtn').click()" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200">
+                <i class="fa-solid fa-pen mr-1"></i> Write Note
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- RIGHT FILE INSPECTOR DRAWER -->
+        <aside id="inspectorDrawer" class="w-72 border-l border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 p-4 flex flex-col justify-between shrink-0 overflow-y-auto">
+          <div class="space-y-4">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">File Inspector</h4>
+              <button id="closeInspectorBtn" class="text-slate-400 hover:text-slate-600 text-xs">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+
+            <!-- Single Item Details -->
+            <div id="inspectorContent" class="space-y-3 text-xs">
+              <div class="p-3 bg-slate-100 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center space-x-3">
+                <div id="inspectIcon" class="text-2xl"></div>
+                <div class="truncate flex-1">
+                  <div id="inspectName" class="font-bold truncate text-slate-800 dark:text-slate-200">Select an item</div>
+                  <div id="inspectSub" class="text-[10px] text-slate-400 truncate">No file chosen</div>
+                </div>
+              </div>
+
+              <!-- DIRECT ACTION BUTTONS PANEL (STATIC RE-BOUND DOM NODES) -->
+              <div class="space-y-2 pt-1 border-t border-slate-200 dark:border-slate-800">
+                <!-- Primary Download Button -->
+                <button id="inspectPrimaryDownloadBtn" class="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-md text-xs flex items-center justify-center space-x-2 transition-all">
+                  <i class="fa-solid fa-download text-sm"></i>
+                  <span id="inspectPrimaryDownloadText">Download File</span>
+                </button>
+
+                <!-- Action Buttons Grid -->
+                <div class="grid grid-cols-2 gap-1.5 text-[11px]">
+                  <button id="inspectBtnPreview" class="p-2 bg-slate-200/70 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-950/50 hover:text-blue-500 rounded-lg flex items-center space-x-1.5 font-medium transition-colors text-slate-700 dark:text-slate-200">
+                    <i class="fa-solid fa-eye text-blue-500 w-3.5"></i>
+                    <span>Preview</span>
+                  </button>
+                  <button id="inspectBtnHex" class="p-2 bg-slate-200/70 dark:bg-slate-800 hover:bg-purple-50 dark:hover:bg-purple-950/50 hover:text-purple-500 rounded-lg flex items-center space-x-1.5 font-medium transition-colors text-slate-700 dark:text-slate-200">
+                    <i class="fa-solid fa-microchip text-purple-500 w-3.5"></i>
+                    <span>Hex View</span>
+                  </button>
+                  <button id="inspectBtnStar" class="p-2 bg-slate-200/70 dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-950/50 hover:text-amber-500 rounded-lg flex items-center space-x-1.5 font-medium transition-colors text-slate-700 dark:text-slate-200">
+                    <i class="fa-solid fa-star text-amber-400 w-3.5"></i>
+                    <span id="inspectStarLabel">Star</span>
+                  </button>
+                  <button id="inspectBtnRename" class="p-2 bg-slate-200/70 dark:bg-slate-800 hover:bg-cyan-50 dark:hover:bg-cyan-950/50 hover:text-cyan-500 rounded-lg flex items-center space-x-1.5 font-medium transition-colors text-slate-700 dark:text-slate-200">
+                    <i class="fa-solid fa-pen-to-square text-cyan-500 w-3.5"></i>
+                    <span>Rename</span>
+                  </button>
+                  <button id="inspectBtnMove" class="p-2 bg-slate-200/70 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 hover:text-indigo-500 rounded-lg flex items-center space-x-1.5 font-medium transition-colors text-slate-700 dark:text-slate-200">
+                    <i class="fa-solid fa-folder-tree text-indigo-500 w-3.5"></i>
+                    <span>Move</span>
+                  </button>
+                  <button id="inspectBtnDuplicate" class="p-2 bg-slate-200/70 dark:bg-slate-800 hover:bg-teal-50 dark:hover:bg-teal-950/50 hover:text-teal-500 rounded-lg flex items-center space-x-1.5 font-medium transition-colors text-slate-700 dark:text-slate-200">
+                    <i class="fa-solid fa-copy text-teal-500 w-3.5"></i>
+                    <span>Duplicate</span>
+                  </button>
+                </div>
+
+                <!-- Restore Button (Visible in Trash view) -->
+                <button id="inspectBtnRestore" class="hidden w-full p-2 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-600 dark:text-emerald-400 rounded-lg font-medium flex items-center justify-center space-x-1.5 transition-colors">
+                  <i class="fa-solid fa-rotate-left text-xs"></i>
+                  <span>Restore Item</span>
+                </button>
+
+                <!-- Delete Button -->
+                <button id="inspectBtnDelete" class="w-full p-2 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 rounded-lg font-medium flex items-center justify-center space-x-1.5 transition-colors">
+                  <i class="fa-solid fa-trash-can text-xs"></i>
+                  <span id="inspectDeleteLabel">Delete Item</span>
+                </button>
+              </div>
+
+              <div class="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                <div>
+                  <span class="text-slate-400 block text-[10px] font-semibold uppercase">MIME Type / Format</span>
+                  <span id="inspectType" class="font-mono text-slate-700 dark:text-slate-300">-</span>
+                </div>
+                <div>
+                  <span class="text-slate-400 block text-[10px] font-semibold uppercase">File Size & Chunks</span>
+                  <span id="inspectSize" class="font-mono text-slate-700 dark:text-slate-300">-</span>
+                </div>
+                <div>
+                  <span class="text-slate-400 block text-[10px] font-semibold uppercase">Created Date</span>
+                  <span id="inspectCreated" class="text-slate-700 dark:text-slate-300">-</span>
+                </div>
+                <div>
+                  <span class="text-slate-400 block text-[10px] font-semibold uppercase">Parent Directory</span>
+                  <span id="inspectPath" class="text-slate-700 dark:text-slate-300 break-all font-mono">-</span>
+                </div>
+              </div>
+
+              <!-- SHA-256 Hash Calculator -->
+              <div class="pt-2 border-t border-slate-200 dark:border-slate-800">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-slate-400 text-[10px] font-semibold uppercase">SHA-256 Checksum</span>
+                  <button id="calcSha256Btn" class="text-[10px] font-medium text-blue-500 hover:underline">Calculate</button>
+                </div>
+                <div id="sha256Result" class="p-2 bg-slate-100 dark:bg-slate-900 rounded-lg text-[10px] font-mono break-all text-slate-500 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                  <span id="sha256Text">Not calculated</span>
+                  <button id="copySha256Btn" class="hidden text-blue-500 hover:text-blue-400 ml-1"><i class="fa-regular fa-copy"></i></button>
+                </div>
+              </div>
+
+              <!-- Quick Move Location Picker in Inspector -->
+              <div class="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-1.5">
+                <span class="text-slate-400 text-[10px] font-semibold uppercase flex items-center justify-between">
+                  <span>Move Location</span>
+                  <i class="fa-solid fa-folder-tree text-indigo-400"></i>
+                </span>
+                <div class="flex space-x-1.5">
+                  <select id="inspectMoveSelect" class="flex-1 text-xs bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                    <!-- Dynamic folder options -->
+                  </select>
+                  <button id="inspectMoveConfirmBtn" class="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-lg shadow-sm transition-all flex items-center space-x-1">
+                    <span>Move</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Item Tags -->
+              <div class="pt-2 border-t border-slate-200 dark:border-slate-800">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-slate-400 text-[10px] font-semibold uppercase">Assigned Tags</span>
+                  <button id="manageTagsBtn" class="text-[10px] font-medium text-blue-500 hover:underline">Edit</button>
+                </div>
+                <div id="inspectTags" class="flex flex-wrap gap-1"></div>
+              </div>
+
+              <!-- Folder Accent Color Picker -->
+              <div id="folderColorBox" class="hidden pt-2 border-t border-slate-200 dark:border-slate-800 space-y-1">
+                <span class="text-slate-400 text-[10px] font-semibold uppercase">Folder Accent Color</span>
+                <div id="inspectorColorPicker" class="flex items-center space-x-2">
+                  <button data-color="blue" class="w-5 h-5 rounded-full bg-blue-500 hover:scale-110 transition-transform"></button>
+                  <button data-color="emerald" class="w-5 h-5 rounded-full bg-emerald-500 hover:scale-110 transition-transform"></button>
+                  <button data-color="purple" class="w-5 h-5 rounded-full bg-purple-500 hover:scale-110 transition-transform"></button>
+                  <button data-color="amber" class="w-5 h-5 rounded-full bg-amber-500 hover:scale-110 transition-transform"></button>
+                  <button data-color="rose" class="w-5 h-5 rounded-full bg-rose-500 hover:scale-110 transition-transform"></button>
+                  <button data-color="cyan" class="w-5 h-5 rounded-full bg-cyan-500 hover:scale-110 transition-transform"></button>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Empty inspector fallback -->
+            <div id="inspectorEmpty" class="py-10 text-center text-slate-400 text-xs">
+              Select a file or folder to inspect properties & perform actions
+            </div>
+
+          </div>
+        </aside>
+
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- HIDDEN INPUTS -->
+  <input type="file" id="fileUploadInput" multiple class="hidden" />
+  <input type="file" id="folderUploadInput" webkitdirectory directory multiple class="hidden" />
+  <input type="file" id="backupRestoreInput" accept=".json" class="hidden" />
+
+  <!-- CONTEXT MENU -->
+  <div id="contextMenu" class="w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-xl py-1 text-xs">
+    <button id="ctxOpen" class="w-full text-left px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center space-x-2">
+      <i class="fa-solid fa-eye text-blue-500 w-4"></i>
+      <span>Open / Preview</span>
+    </button>
+    <button id="ctxHex" class="w-full text-left px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center space-x-2">
+      <i class="fa-solid fa-microchip text-purple-500 w-4"></i>
+      <span>Hex / Binary View</span>
+    </button>
+    <button id="ctxStar" class="w-full text-left px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center space-x-2">
+      <i class="fa-solid fa-star text-amber-400 w-4"></i>
+      <span id="ctxStarText">Star Item</span>
+    </button>
+    <button id="ctxRename" class="w-full text-left px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center space-x-2">
+      <i class="fa-solid fa-pen-to-square text-cyan-500 w-4"></i>
+      <span>Rename (F2)</span>
+    </button>
+    <button id="ctxMove" class="w-full text-left px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center space-x-2">
+      <i class="fa-solid fa-folder-tree text-indigo-500 w-4"></i>
+      <span>Move to...</span>
+    </button>
+    <button id="ctxDuplicate" class="w-full text-left px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center space-x-2">
+      <i class="fa-solid fa-copy text-teal-500 w-4"></i>
+      <span>Duplicate</span>
+    </button>
+    <button id="ctxDownload" class="w-full text-left px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center space-x-2">
+      <i class="fa-solid fa-download text-emerald-500 w-4"></i>
+      <span>Download</span>
+    </button>
+    <div class="h-px bg-slate-200 dark:bg-slate-800 my-1"></div>
+    <button id="ctxDelete" class="w-full text-left px-3 py-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-500 flex items-center space-x-2">
+      <i class="fa-solid fa-trash-can w-4"></i>
+      <span id="ctxDeleteText">Move to Trash</span>
+    </button>
+  </div>
+
+  <!-- MULTI-FORMAT PREVIEW MODAL -->
+  <div id="previewModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="w-full max-w-5xl h-[88vh] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+      
+      <!-- Modal Header -->
+      <div class="px-5 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0 bg-slate-50/50 dark:bg-slate-950/50">
+        <div class="flex items-center space-x-2.5 truncate">
+          <div id="previewIcon" class="text-lg text-blue-500"></div>
+          <h3 id="previewTitle" class="font-bold text-sm truncate text-slate-800 dark:text-slate-100">File Preview</h3>
+        </div>
+
+        <div class="flex items-center space-x-2">
+          <!-- Text Mode Switcher -->
+          <div id="textModeSwitch" class="hidden items-center bg-slate-200 dark:bg-slate-800 p-0.5 rounded-lg text-xs mr-2">
+            <button id="btnTextEdit" class="px-2.5 py-0.5 rounded bg-white dark:bg-slate-700 font-medium text-blue-500 shadow-sm">Editor</button>
+            <button id="btnTextPreview" class="px-2.5 py-0.5 rounded text-slate-500 font-medium">Markdown</button>
+          </div>
+
+          <button id="previewSaveBtn" class="hidden px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-lg shadow-sm">
+            <i class="fa-solid fa-floppy-disk mr-1"></i> Save
+          </button>
+          <button id="previewDownloadBtn" title="Download File" class="p-1.5 text-slate-400 hover:text-slate-200 text-xs">
+            <i class="fa-solid fa-download"></i>
+          </button>
+          <button id="previewCloseBtn" class="p-1.5 text-slate-400 hover:text-rose-500 text-xs">
+            <i class="fa-solid fa-xmark text-base"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Stage -->
+      <div class="flex-1 bg-slate-100 dark:bg-slate-950 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+        
+        <!-- IMAGE STAGE -->
+        <div id="imageStage" class="hidden flex-col items-center justify-center h-full w-full">
+          <div class="overflow-auto flex-1 flex items-center justify-center w-full">
+            <img id="previewImage" class="max-h-full max-w-full object-contain rounded transition-transform duration-150" src="" />
+          </div>
+          <div class="mt-3 flex items-center space-x-3 bg-white/80 dark:bg-slate-900/80 px-3 py-1 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
+            <button id="imgZoomOut" class="p-1 hover:text-blue-500"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+            <span id="imgZoomVal" class="font-mono w-12 text-center">100%</span>
+            <button id="imgZoomIn" class="p-1 hover:text-blue-500"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+            <div class="h-3 w-px bg-slate-300 dark:bg-slate-700"></div>
+            <button id="imgRotate" class="p-1 hover:text-blue-500"><i class="fa-solid fa-rotate-right"></i></button>
+          </div>
+        </div>
+
+        <!-- AUDIO STAGE WITH OSCILLOSCOPE -->
+        <div id="audioStage" class="hidden flex-col items-center justify-center w-full max-w-md space-y-4">
+          <div class="w-24 h-24 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-white text-4xl shadow-xl">
+            <i class="fa-solid fa-music"></i>
+          </div>
+          <canvas id="audioCanvas" width="400" height="90" class="w-full h-20 rounded-xl bg-slate-900 border border-slate-800"></canvas>
+          <audio id="previewAudio" controls class="w-full"></audio>
+        </div>
+
+        <!-- VIDEO STAGE -->
+        <div id="videoStage" class="hidden w-full h-full flex items-center justify-center">
+          <video id="previewVideo" controls class="max-h-full max-w-full rounded-xl shadow-xl border border-slate-800"></video>
+        </div>
+
+        <!-- TEXT / CODE / MARKDOWN EDITOR -->
+        <div id="textStage" class="hidden w-full h-full flex flex-col space-y-2">
+          <div class="flex items-center justify-between text-[11px] text-slate-400 font-mono px-1">
+            <span id="textStats">0 lines | 0 words</span>
+            <span>Encoding: UTF-8</span>
+          </div>
+          <textarea id="textEditor" class="w-full flex-1 p-4 font-mono text-xs bg-slate-900 text-slate-100 rounded-xl focus:outline-none resize-none border border-slate-800 leading-relaxed"></textarea>
+          <div id="markdownRender" class="hidden w-full flex-1 p-5 bg-white dark:bg-slate-900 rounded-xl overflow-y-auto prose dark:prose-invert max-w-none text-xs"></div>
+        </div>
+
+        <!-- HEX / RAW BINARY INSPECTOR -->
+        <div id="hexStage" class="hidden w-full h-full flex flex-col space-y-2">
+          <div class="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+            <span>Hex Dump (First 1KB Byte Stream)</span>
+            <button id="copyHexModalBtn" class="text-blue-500 hover:underline"><i class="fa-regular fa-copy mr-1"></i> Copy Hex</button>
+          </div>
+          <div id="hexContainer" class="w-full flex-1 p-4 font-mono text-xs bg-slate-900 text-emerald-400 rounded-xl overflow-auto border border-slate-800 whitespace-pre"></div>
+        </div>
+
+        <!-- UNSUPPORTED FALLBACK -->
+        <div id="fallbackStage" class="hidden flex-col items-center justify-center text-center space-y-3">
+          <div class="w-16 h-16 rounded-2xl bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-400 text-2xl">
+            <i class="fa-solid fa-file-circle-question"></i>
+          </div>
+          <p class="text-xs font-semibold text-slate-700 dark:text-slate-300">No inline preview available for this file format</p>
+          <button id="fallbackDownloadBtn" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-lg shadow-sm">
+            <i class="fa-solid fa-download mr-1"></i> Download File
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- NEW FOLDER MODAL -->
+  <div id="newFolderModal" class="hidden fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="w-full max-w-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-2xl space-y-4">
+      <h3 class="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center space-x-2">
+        <i class="fa-solid fa-folder-plus text-amber-500"></i>
+        <span>Create Folder</span>
+      </h3>
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1">Folder Name</label>
+        <input type="text" id="folderNameInput" placeholder="New Folder" class="w-full px-3 py-1.5 text-xs bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500">
+      </div>
+      <div class="flex justify-end space-x-2 pt-1">
+        <button id="cancelFolderBtn" class="px-3 py-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700">Cancel</button>
+        <button id="saveFolderBtn" class="px-3 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white rounded-lg shadow-sm">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NEW NOTE MODAL -->
+  <div id="newNoteModal" class="hidden fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-2xl space-y-4">
+      <h3 class="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center space-x-2">
+        <i class="fa-solid fa-file-pen text-blue-500"></i>
+        <span>Create Document Note</span>
+      </h3>
+      <div class="grid grid-cols-3 gap-2">
+        <div class="col-span-2">
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Title</label>
+          <input type="text" id="noteTitleInput" placeholder="Untitled Note" class="w-full px-3 py-1.5 text-xs bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Format</label>
+          <select id="noteTypeInput" class="w-full px-3 py-1.5 text-xs bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none">
+            <option value="md">Markdown (.md)</option>
+            <option value="txt">Text (.txt)</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1">Content</label>
+        <textarea id="noteBodyInput" rows="5" placeholder="Write content here..." class="w-full p-3 font-mono text-xs bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none resize-none"></textarea>
+      </div>
+      <div class="flex justify-end space-x-2 pt-1">
+        <button id="cancelNoteBtn" class="px-3 py-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700">Cancel</button>
+        <button id="saveNoteBtn" class="px-3 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white rounded-lg shadow-sm">Save Note</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MOVE MODAL -->
+  <div id="moveModal" class="hidden fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-2xl space-y-4">
+      <h3 class="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center space-x-2">
+        <i class="fa-solid fa-folder-tree text-indigo-500"></i>
+        <span>Move Destination</span>
+      </h3>
+      <div id="moveFolderTree" class="max-h-56 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-xl p-2 space-y-1 text-xs">
+        <!-- Move tree rendered dynamically -->
+      </div>
+      <div class="flex justify-end space-x-2 pt-1">
+        <button id="cancelMoveBtn" class="px-3 py-1.5 text-xs font-semibold text-slate-500">Cancel</button>
+        <button id="confirmMoveBtn" class="px-3 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white rounded-lg shadow-sm">Move Here</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SHORTCUTS MODAL -->
+  <div id="shortcutsModal" class="hidden fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-2xl space-y-3 text-xs">
+      <h3 class="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center space-x-2">
+        <i class="fa-solid fa-keyboard text-indigo-500"></i>
+        <span>Keyboard Shortcuts</span>
+      </h3>
+      <div class="space-y-1.5 font-mono">
+        <div class="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800">
+          <span class="text-slate-500">Focus Search Bar</span>
+          <kbd class="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-800 rounded text-[11px]">/</kbd>
+        </div>
+        <div class="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800">
+          <span class="text-slate-500">Quick File Preview</span>
+          <kbd class="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-800 rounded text-[11px]">Space</kbd>
+        </div>
+        <div class="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800">
+          <span class="text-slate-500">Rename Item</span>
+          <kbd class="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-800 rounded text-[11px]">F2</kbd>
+        </div>
+        <div class="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800">
+          <span class="text-slate-500">Delete Item</span>
+          <kbd class="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-800 rounded text-[11px]">Delete / Backspace</kbd>
+        </div>
+        <div class="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800">
+          <span class="text-slate-500">Select All Items</span>
+          <kbd class="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-800 rounded text-[11px]">Ctrl + A</kbd>
+        </div>
+      </div>
+      <div class="flex justify-end pt-2">
+        <button id="closeShortcutsBtn" class="px-3 py-1.5 font-semibold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAGS MODAL -->
+  <div id="tagsModal" class="hidden fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="w-full max-w-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-2xl space-y-3 text-xs">
+      <h3 class="text-sm font-bold text-slate-800 dark:text-slate-100">Manage Item Tags</h3>
+      <div class="flex space-x-2">
+        <input type="text" id="newTagInput" placeholder="e.g. Work, ISO, Draft" class="flex-1 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none">
+        <button id="addTagBtn" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg">Add</button>
+      </div>
+      <div id="modalTagPills" class="flex flex-wrap gap-1 p-2 bg-slate-100 dark:bg-slate-800/50 rounded-xl min-h-12"></div>
+      <div class="flex justify-end pt-1">
+        <button id="saveTagsBtn" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATIONS CONTAINER -->
+  <div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+  <!-- APPLICATION LOGIC ENGINE -->
+  <script>
+    /* ==========================================================================
+       1. HIGH-CAPACITY INDEXEDDB CHUNKING ENGINE (FlashPortDB_v2)
+       ========================================================================== */
+    const DB_NAME = 'FlashPortDB_v2';
+    const DB_VERSION = 1;
+    const CHUNK_SIZE = 2 * 1024 * 1024; // 2MB Chunks
+
+    let db = null;
+
+    function initDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, DB_VERSION);
+        req.onupgradeneeded = (e) => {
+          const database = e.target.result;
+
+          // Store 1: Metadata
+          if (!database.objectStoreNames.contains('items')) {
+            const fileStore = database.createObjectStore('items', { keyPath: 'id' });
+            fileStore.createIndex('parentId', 'parentId', { unique: false });
+            fileStore.createIndex('isTrash', 'isTrash', { unique: false });
+            fileStore.createIndex('isStarred', 'isStarred', { unique: false });
+          }
+
+          // Store 2: Chunks (key: fileId_chunkIndex)
+          if (!database.objectStoreNames.contains('chunks')) {
+            const chunkStore = database.createObjectStore('chunks', { keyPath: 'key' });
+            chunkStore.createIndex('fileId', 'fileId', { unique: false });
+          }
+        };
+
+        req.onsuccess = (e) => {
+          db = e.target.result;
+          resolve(db);
+        };
+        req.onerror = (e) => reject(e);
+      });
+    }
+
+    function dbGetFile(id) {
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('items', 'readonly');
+        const req = tx.objectStore('items').get(id);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = (e) => reject(e);
+      });
+    }
+
+    function dbGetAllFiles() {
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('items', 'readonly');
+        const req = tx.objectStore('items').getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = (e) => reject(e);
+      });
+    }
+
+    function dbPutFile(fileRecord) {
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('items', 'readwrite');
+        const req = tx.objectStore('items').put(fileRecord);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = (e) => reject(e);
+      });
+    }
+
+    function dbPutChunk(key, fileId, index, arrayBuffer) {
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('chunks', 'readwrite');
+        const store = tx.objectStore('chunks');
+        const req = store.put({ key, fileId, index, buffer: arrayBuffer });
+        req.onsuccess = () => resolve();
+        req.onerror = (e) => reject(e);
+      });
+    }
+
+    function dbGetChunksForFile(fileId) {
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('chunks', 'readonly');
+        const index = tx.objectStore('chunks').index('fileId');
+        const req = index.getAll(fileId);
+        req.onsuccess = () => {
+          const list = req.result || [];
+          list.sort((a, b) => a.index - b.index);
+          resolve(list);
+        };
+        req.onerror = (e) => reject(e);
+      });
+    }
+
+    async function reconstructFileBlob(fileId) {
+      const chunks = await dbGetChunksForFile(fileId);
+      const blobParts = chunks.map(c => c.buffer);
+      const record = await dbGetFile(fileId);
+      return new Blob(blobParts, { type: record ? record.mimeType : 'application/octet-stream' });
+    }
+
+    function dbDeleteFileAndChunks(fileId) {
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(['items', 'chunks'], 'readwrite');
+        tx.objectStore('items').delete(fileId);
+        
+        const chunkStore = tx.objectStore('chunks');
+        const index = chunkStore.index('fileId');
+        const req = index.getAllKeys(fileId);
+        req.onsuccess = () => {
+          const keys = req.result || [];
+          keys.forEach(k => chunkStore.delete(k));
+        };
+        tx.oncomplete = () => resolve();
+        tx.onerror = (e) => reject(e);
+      });
+    }
+
+    /* ==========================================================================
+       2. STATE & UTILITIES
+       ========================================================================== */
+    const state = {
+      items: [],
+      currentFolderId: 'root',
+      activeCategory: null,
+      activeTag: null,
+      searchQuery: '',
+      viewMode: 'grid',
+      sortBy: 'name-asc',
+      selectedIds: new Set(),
+      lastSelectedId: null,
+      contextItemId: null,
+      activeInspectItemId: null,
+      activePreviewItem: null,
+      imageZoom: 1,
+      imageRotate: 0,
+      audioCtx: null,
+      audioAnalyser: null,
+      audioSource: null,
+      animFrame: null,
+      isInternalDragging: false,
+      draggedIds: [],
+      activeTransfers: {
+        cancelled: false,
+        totalFiles: 0,
+        completedFiles: 0,
+        bytesTransferred: 0,
+        totalBytes: 0,
+        startTime: 0
+      }
+    };
+
+    function generateId() {
+      return 'fp_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 6);
+    }
+
+    function formatBytes(bytes, decimals = 1) {
+      if (!bytes || bytes === 0) return '0 B';
+      const k = 1024;
+      const dm = decimals < 0 ? 0 : decimals;
+      const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    }
+
+    function formatDate(timestamp) {
+      if (!timestamp) return '-';
+      const d = new Date(timestamp);
+      return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    function getFileCategory(ext, mimeType) {
+      ext = (ext || '').toLowerCase();
+      mimeType = (mimeType || '').toLowerCase();
+      
+      if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp'].includes(ext) || mimeType.startsWith('image/')) return 'image';
+      if (['mp3', 'wav', 'ogg', 'flac', 'm4a', 'mp4', 'webm', 'avi', 'mov', 'mkv'].includes(ext) || mimeType.startsWith('audio/') || mimeType.startsWith('video/')) return 'media';
+      if (['html', 'css', 'js', 'json', 'py', 'cpp', 'c', 'java', 'ts', 'jsx', 'tsx', 'php', 'rb', 'sql', 'sh', 'xml', 'yaml', 'yml', 'md', 'txt'].includes(ext)) return 'code';
+      if (['zip', 'rar', '7z', 'tar', 'gz', 'iso', 'dmg'].includes(ext)) return 'archive';
+      return 'doc';
+    }
+
+    function getFileIcon(item) {
+      if (item.type === 'folder') {
+        const colorMap = {
+          blue: 'text-blue-500',
+          emerald: 'text-emerald-500',
+          purple: 'text-purple-500',
+          amber: 'text-amber-500',
+          rose: 'text-rose-500',
+          cyan: 'text-cyan-500'
+        };
+        return `<i class="fa-solid fa-folder ${colorMap[item.color] || 'text-amber-500'}"></i>`;
+      }
+
+      const category = getFileCategory(item.ext, item.mimeType);
+      switch(category) {
+        case 'image': return `<i class="fa-solid fa-file-image text-emerald-500"></i>`;
+        case 'media': return `<i class="fa-solid fa-file-video text-purple-500"></i>`;
+        case 'code': return `<i class="fa-solid fa-file-code text-cyan-500"></i>`;
+        case 'archive': return `<i class="fa-solid fa-file-zipper text-amber-500"></i>`;
+        default: return `<i class="fa-solid fa-file-lines text-blue-500"></i>`;
+      }
+    }
+
+    function showToast(msg) {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = 'pointer-events-auto bg-slate-900 text-white text-xs px-3.5 py-2.5 rounded-xl shadow-xl border border-slate-800 flex items-center space-x-2 transition-all transform translate-y-2 opacity-0';
+      toast.innerHTML = `<i class="fa-solid fa-circle-check text-blue-400 text-xs"></i><span>${msg}</span>`;
+      container.appendChild(toast);
+      requestAnimationFrame(() => toast.classList.remove('translate-y-2', 'opacity-0'));
+      setTimeout(() => {
+        if (toast.parentNode) {
+          toast.classList.add('opacity-0', 'translate-y-2');
+          setTimeout(() => toast.remove(), 150);
+        }
+      }, 3000);
+    }
+
+    /* ==========================================================================
+       3. 1GB+ FILE IMPORT ENGINE & TRANSFER QUEUE
+       ========================================================================== */
+    async function saveFileInChunks(file, parentId) {
+      if (state.activeTransfers.cancelled) return;
+
+      const fileId = generateId();
+      const ext = file.name.includes('.') ? file.name.split('.').pop() : '';
+      const totalSize = file.size;
+      const numChunks = Math.ceil(totalSize / CHUNK_SIZE) || 1;
+
+      // Initial File Record
+      const record = {
+        id: fileId,
+        name: file.name,
+        parentId: parentId,
+        type: 'file',
+        ext: ext,
+        mimeType: file.type || 'application/octet-stream',
+        size: totalSize,
+        chunkCount: numChunks,
+        createdAt: Date.now(),
+        updatedAt: file.lastModified || Date.now(),
+        isStarred: false,
+        isTrash: false,
+        tags: [],
+        sha256: null
+      };
+
+      // Chunk slicing loop into ArrayBuffer
+      for (let i = 0; i < numChunks; i++) {
+        if (state.activeTransfers.cancelled) break;
+
+        const start = i * CHUNK_SIZE;
+        const end = Math.min(totalSize, (i + 1) * CHUNK_SIZE);
+        const sliceBlob = file.slice(start, end);
+        const buffer = await sliceBlob.arrayBuffer();
+        const key = `${fileId}_chunk_${i}`;
+
+        await dbPutChunk(key, fileId, i, buffer);
+
+        state.activeTransfers.bytesTransferred += (end - start);
+        updateTransferProgressUI();
+      }
+
+      if (!state.activeTransfers.cancelled) {
+        await dbPutFile(record);
+        state.activeTransfers.completedFiles++;
+      }
+    }
+
+    function startTransferQueue(fileCount, totalBytes) {
+      state.activeTransfers = {
+        cancelled: false,
+        totalFiles: fileCount,
+        completedFiles: 0,
+        bytesTransferred: 0,
+        totalBytes: totalBytes,
+        startTime: Date.now()
+      };
+      document.getElementById('transferWidget').classList.remove('hidden');
+      updateTransferProgressUI();
+    }
+
+    function updateTransferProgressUI() {
+      const t = state.activeTransfers;
+      if (t.totalBytes === 0) return;
+
+      const elapsedSec = (Date.now() - t.startTime) / 1000 || 0.1;
+      const speedBytesPerSec = t.bytesTransferred / elapsedSec;
+      const speedMB = (speedBytesPerSec / (1024 * 1024)).toFixed(1);
+      
+      const percent = Math.min(100, Math.round((t.bytesTransferred / t.totalBytes) * 100));
+      const remainingBytes = t.totalBytes - t.bytesTransferred;
+      const etaSec = speedBytesPerSec > 0 ? Math.ceil(remainingBytes / speedBytesPerSec) : 0;
+
+      document.getElementById('transferTitle').innerText = `Uploading (${t.completedFiles}/${t.totalFiles})...`;
+      document.getElementById('transferProgressBar').style.width = percent + '%';
+      document.getElementById('transferSpeed').innerText = `${speedMB} MB/s (${percent}%)`;
+      document.getElementById('transferEta').innerText = `ETA: ${etaSec}s`;
+
+      if (t.bytesTransferred >= t.totalBytes || t.completedFiles >= t.totalFiles) {
+        setTimeout(() => {
+          document.getElementById('transferWidget').classList.add('hidden');
+        }, 1500);
+      }
+    }
+
+    document.getElementById('cancelTransfersBtn').addEventListener('click', () => {
+      state.activeTransfers.cancelled = true;
+      document.getElementById('transferWidget').classList.add('hidden');
+      showToast('Transfers cancelled');
+    });
+
+    /* ==========================================================================
+       4. DEEP FOLDER TRAVERSAL & DRAG/DROP
+       ========================================================================== */
+    async function processDroppedItems(items) {
+      const entries = [];
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.kind === 'file') {
+          const entry = item.webkitGetAsEntry ? item.webkitGetAsEntry() : null;
+          if (entry) entries.push(entry);
+        }
+      }
+
+      startTransferQueue(entries.length || 1, 50 * 1024 * 1024);
+
+      for (const entry of entries) {
+        await traverseFileSystemEntry(entry, getTargetFolderId());
+      }
+
+      await refreshUI();
+      showToast('Import completed!');
+    }
+
+    function getTargetFolderId() {
+      return ['starred', 'trash', 'recent'].includes(state.currentFolderId) || state.activeCategory || state.activeTag ? 'root' : state.currentFolderId;
+    }
+
+    async function traverseFileSystemEntry(entry, parentId) {
+      if (entry.isFile) {
+        return new Promise((resolve) => {
+          entry.file(async (file) => {
+            await saveFileInChunks(file, parentId);
+            resolve();
+          });
+        });
+      } else if (entry.isDirectory) {
+        const folderId = generateId();
+        const folderRecord = {
+          id: folderId,
+          name: entry.name,
+          parentId: parentId,
+          type: 'folder',
+          color: 'blue',
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          isStarred: false,
+          isTrash: false,
+          tags: []
+        };
+        await dbPutFile(folderRecord);
+
+        const reader = entry.createReader();
+        const readAllEntries = async () => {
+          let batch = await new Promise(res => reader.readEntries(res));
+          while (batch.length > 0) {
+            for (const child of batch) {
+              await traverseFileSystemEntry(child, folderId);
+            }
+            batch = await new Promise(res => reader.readEntries(res));
+          }
+        };
+        await readAllEntries();
+      }
+    }
+
+    async function handleFolderUploadInput(fileList) {
+      const folderMap = {};
+      const rootParent = getTargetFolderId();
+
+      let totalBytes = 0;
+      for (let i = 0; i < fileList.length; i++) totalBytes += fileList[i].size;
+      startTransferQueue(fileList.length, totalBytes);
+
+      for (let i = 0; i < fileList.length; i++) {
+        if (state.activeTransfers.cancelled) break;
+        const file = fileList[i];
+        const relPath = file.webkitRelativePath || file.name;
+        const parts = relPath.split('/');
+
+        let currentParent = rootParent;
+        for (let p = 0; p < parts.length - 1; p++) {
+          const folderName = parts[p];
+          const cacheKey = currentParent + '/' + folderName;
+
+          if (!folderMap[cacheKey]) {
+            const folderId = generateId();
+            await dbPutFile({
+              id: folderId,
+              name: folderName,
+              parentId: currentParent,
+              type: 'folder',
+              color: 'blue',
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+              isStarred: false,
+              isTrash: false,
+              tags: []
+            });
+            folderMap[cacheKey] = folderId;
+          }
+          currentParent = folderMap[cacheKey];
+        }
+
+        await saveFileInChunks(file, currentParent);
+      }
+
+      await refreshUI();
+      showToast('Folder upload complete!');
+    }
+
+    /* ==========================================================================
+       5. RENDER ENGINE & BROWSER STORAGE ESTIMATOR
+       ========================================================================== */
+    async function refreshUI() {
+      state.items = await dbGetAllFiles();
+      renderSidebarTags();
+      renderSidebarTree();
+      renderBreadcrumb();
+      renderRealStorageStats();
+      renderExplorer();
+      updateBadges();
+
+      if (state.activeInspectItemId) {
+        updateInspector(state.activeInspectItemId);
+      }
+    }
+
+    async function renderRealStorageStats() {
+      let totalUsed = 0;
+      let imgBytes = 0, docBytes = 0, mediaBytes = 0, codeBytes = 0, otherBytes = 0;
+
+      state.items.filter(i => !i.isTrash && i.type === 'file').forEach(i => {
+        const sz = i.size || 0;
+        totalUsed += sz;
+        const cat = getFileCategory(i.ext, i.mimeType);
+        if (cat === 'image') imgBytes += sz;
+        else if (cat === 'doc') docBytes += sz;
+        else if (cat === 'media') mediaBytes += sz;
+        else if (cat === 'code') codeBytes += sz;
+        else otherBytes += sz;
+      });
+
+      let quota = 10 * 1024 * 1024 * 1024; // Default fallback 10GB
+      if (navigator.storage && navigator.storage.estimate) {
+        try {
+          const estimate = await navigator.storage.estimate();
+          if (estimate.quota) quota = estimate.quota;
+        } catch(e){}
+      }
+
+      const percent = Math.min(100, ((totalUsed / quota) * 100).toFixed(1));
+      document.getElementById('storagePercentText').innerText = percent + '%';
+      document.getElementById('storageUsedText').innerText = formatBytes(totalUsed) + ' used';
+      document.getElementById('storageQuotaText').innerText = 'Quota: ' + formatBytes(quota);
+
+      if (totalUsed > 0) {
+        document.getElementById('barImages').style.width = ((imgBytes / totalUsed) * 100) + '%';
+        document.getElementById('barDocs').style.width = ((docBytes / totalUsed) * 100) + '%';
+        document.getElementById('barMedia').style.width = ((mediaBytes / totalUsed) * 100) + '%';
+        document.getElementById('barCode').style.width = ((codeBytes / totalUsed) * 100) + '%';
+        document.getElementById('barOther').style.width = ((otherBytes / totalUsed) * 100) + '%';
+      }
+    }
+
+    function getFilteredItems() {
+      let list = state.items.slice();
+
+      if (state.searchQuery.trim() !== '') {
+        const q = state.searchQuery.toLowerCase();
+        return list.filter(item => 
+          !item.isTrash && (
+            item.name.toLowerCase().includes(q) ||
+            (item.tags && item.tags.some(t => t.toLowerCase().includes(q))) ||
+            (item.ext && item.ext.toLowerCase().includes(q))
+          )
+        );
+      }
+
+      if (state.currentFolderId === 'starred') return list.filter(item => !item.isTrash && item.isStarred);
+      if (state.currentFolderId === 'trash') return list.filter(item => item.isTrash);
+      if (state.currentFolderId === 'recent') return list.filter(item => !item.isTrash && item.type === 'file').sort((a,b) => b.updatedAt - a.updatedAt).slice(0, 20);
+
+      if (state.activeCategory) {
+        return list.filter(item => !item.isTrash && item.type === 'file' && getFileCategory(item.ext, item.mimeType) === state.activeCategory);
+      }
+
+      if (state.activeTag) {
+        return list.filter(item => !item.isTrash && item.tags && item.tags.includes(state.activeTag));
+      }
+
+      return list.filter(item => !item.isTrash && item.parentId === state.currentFolderId);
+    }
+
+    function sortItems(items) {
+      return items.sort((a, b) => {
+        if (a.type !== b.type) return a.type === 'folder' ? -1 : 1;
+        switch (state.sortBy) {
+          case 'name-asc': return a.name.localeCompare(b.name);
+          case 'name-desc': return b.name.localeCompare(a.name);
+          case 'date-desc': return (b.updatedAt || 0) - (a.updatedAt || 0);
+          case 'date-asc': return (a.updatedAt || 0) - (b.updatedAt || 0);
+          case 'size-desc': return (b.size || 0) - (a.size || 0);
+          case 'size-asc': return (a.size || 0) - (b.size || 0);
+          default: return 0;
+        }
+      });
+    }
+
+    function renderExplorer() {
+      const items = sortItems(getFilteredItems());
+      const gridView = document.getElementById('gridView');
+      const listView = document.getElementById('listView');
+      const tableBody = document.getElementById('listTableBody');
+      const emptyState = document.getElementById('emptyState');
+
+      if (items.length === 0) {
+        gridView.innerHTML = '';
+        tableBody.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+
+      if (state.viewMode === 'grid') {
+        gridView.classList.remove('hidden');
+        listView.classList.add('hidden');
+        renderGridView(items, gridView);
+      } else {
+        gridView.classList.add('hidden');
+        listView.classList.remove('hidden');
+        renderListView(items, tableBody);
+      }
+
+      updateBatchBar();
+    }
+
+    function renderGridView(items, container) {
+      container.innerHTML = items.map(item => {
+        const isSelected = state.selectedIds.has(item.id);
+        const iconHtml = getFileIcon(item);
+
+        return `
+          <div data-id="${item.id}" data-type="${item.type}" draggable="true" class="item-card group relative p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 hover:border-blue-500/50 shadow-sm transition-all cursor-pointer flex flex-col justify-between ${isSelected ? 'selected' : ''}">
+            
+            <div class="flex items-center justify-between mb-2">
+              <input type="checkbox" data-checkid="${item.id}" ${isSelected ? 'checked' : ''} class="item-checkbox rounded border-slate-300 dark:border-slate-700 text-blue-600 focus:ring-0 ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity">
+              <div class="flex items-center space-x-1">
+                <button data-dlid="${item.id}" title="Download ${item.type === 'folder' ? 'Folder ZIP' : 'File'}" class="p-1 text-slate-400 hover:text-emerald-500 ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity">
+                  <i class="fa-solid fa-download text-xs"></i>
+                </button>
+                <button data-starid="${item.id}" class="p-0.5 text-slate-300 hover:text-amber-400 dark:text-slate-700 ${item.isStarred ? 'text-amber-400 opacity-100' : 'opacity-0 group-hover:opacity-100'}">
+                  <i class="fa-${item.isStarred ? 'solid' : 'regular'} fa-star text-xs"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="flex-1 flex flex-col items-center justify-center py-2">
+              <div class="text-3xl mb-1.5 transition-transform group-hover:scale-105 duration-150">
+                ${iconHtml}
+              </div>
+              <p class="font-medium text-xs text-slate-800 dark:text-slate-200 truncate w-full text-center px-1" title="${item.name}">${item.name}</p>
+            </div>
+
+            <div class="mt-2 pt-1.5 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[10px] text-slate-400 font-mono">
+              <span>${item.type === 'folder' ? 'Folder' : formatBytes(item.size)}</span>
+              <span>${formatDate(item.updatedAt)}</span>
+            </div>
+
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderListView(items, tbody) {
+      tbody.innerHTML = items.map(item => {
+        const isSelected = state.selectedIds.has(item.id);
+        const iconHtml = getFileIcon(item);
+        const tagsHtml = (item.tags || []).map(t => `<span class="px-1 py-0.2 text-[9px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-500 rounded border border-slate-200 dark:border-slate-700">#${t}</span>`).join(' ');
+
+        return `
+          <tr data-id="${item.id}" data-type="${item.type}" draggable="true" class="item-card hover:bg-slate-50 dark:hover:bg-slate-900/60 transition-colors cursor-pointer ${isSelected ? 'selected' : ''}">
+            <td class="py-2 px-2">
+              <input type="checkbox" data-checkid="${item.id}" ${isSelected ? 'checked' : ''} class="item-checkbox rounded border-slate-300 dark:border-slate-700 text-blue-600 focus:ring-0">
+            </td>
+            <td class="py-2 px-2">
+              <div class="flex items-center space-x-2">
+                <span class="text-sm">${iconHtml}</span>
+                <span class="font-medium text-slate-800 dark:text-slate-200 truncate max-w-xs">${item.name}</span>
+                ${item.isStarred ? '<i class="fa-solid fa-star text-amber-400 text-xs"></i>' : ''}
+              </div>
+            </td>
+            <td class="py-2 px-2 hidden md:table-cell">
+              <div class="flex flex-wrap gap-1">${tagsHtml || '-'}</div>
+            </td>
+            <td class="py-2 px-2 font-mono text-slate-500 text-[11px]">${item.type === 'folder' ? '-' : formatBytes(item.size)}</td>
+            <td class="py-2 px-2 font-mono text-slate-400 text-[11px] hidden sm:table-cell">${item.chunkCount || 1}</td>
+            <td class="py-2 px-2 text-slate-400 text-[11px] hidden sm:table-cell">${formatDate(item.updatedAt)}</td>
+            <td class="py-2 px-2 text-right">
+              <button data-dlid="${item.id}" title="Download ${item.type === 'folder' ? 'Folder ZIP' : 'File'}" class="p-1 text-slate-400 hover:text-emerald-500 mr-1.5 transition-colors">
+                <i class="fa-solid fa-download text-xs"></i>
+              </button>
+              <button data-optid="${item.id}" class="p-1 text-slate-400 hover:text-slate-200">
+                <i class="fa-solid fa-ellipsis-vertical text-xs"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderBreadcrumb() {
+      const nav = document.getElementById('breadcrumbNav');
+      const upBtn = document.getElementById('upFolderBtn');
+
+      if (['root', 'starred', 'trash', 'recent'].includes(state.currentFolderId) && !state.searchQuery) {
+        upBtn.disabled = true;
+      } else {
+        upBtn.disabled = false;
+      }
+
+      if (state.searchQuery) {
+        nav.innerHTML = `<span class="font-bold text-slate-800 dark:text-slate-200">Search: "${state.searchQuery}"</span>`;
+        return;
+      }
+
+      if (['starred', 'trash', 'recent'].includes(state.currentFolderId)) {
+        nav.innerHTML = `<span class="font-bold capitalize text-slate-800 dark:text-slate-200">${state.currentFolderId} Items</span>`;
+        return;
+      }
+
+      const chain = [];
+      let cur = state.currentFolderId;
+      while (cur && cur !== 'root') {
+        const f = state.items.find(i => i.id === cur);
+        if (f) { chain.unshift(f); cur = f.parentId; } else break;
+      }
+      chain.unshift({ id: 'root', name: 'My Drive' });
+
+      nav.innerHTML = chain.map((node, i) => {
+        const isLast = i === chain.length - 1;
+        return `
+          <button data-crumbid="${node.id}" class="crumb-target px-1.5 py-0.5 rounded hover:bg-slate-200/60 dark:hover:bg-slate-800/60 hover:text-blue-500 transition-all ${isLast ? 'font-bold text-slate-800 dark:text-slate-100' : 'text-slate-400'}">
+            ${node.name}
+          </button>
+          ${!isLast ? '<i class="fa-solid fa-chevron-right text-[9px] text-slate-400"></i>' : ''}
+        `;
+      }).join('');
+    }
+
+    function renderSidebarTags() {
+      const container = document.getElementById('tagsListSidebar');
+      const allTags = new Set();
+      state.items.forEach(i => (i.tags || []).forEach(t => allTags.add(t)));
+
+      if (allTags.size === 0) {
+        container.innerHTML = `<span class="text-[10px] text-slate-400 italic">No tags</span>`;
+        return;
+      }
+
+      container.innerHTML = Array.from(allTags).map(tag => {
+        const isActive = state.activeTag === tag;
+        return `
+          <button data-tagname="${tag}" class="px-2 py-0.5 rounded text-[10px] font-mono transition-all ${isActive ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}">
+            #${tag}
+          </button>
+        `;
+      }).join('');
+    }
+
+    function renderSidebarTree() {
+      const container = document.getElementById('sidebarFolderTree');
+      const folders = state.items.filter(i => !i.isTrash && i.type === 'folder');
+
+      function buildTree(pId = 'root', depth = 0) {
+        const children = folders.filter(f => f.parentId === pId);
+        if (children.length === 0) return '';
+        return children.map(folder => {
+          const isActive = state.currentFolderId === folder.id;
+          return `
+            <div>
+              <button data-treeid="${folder.id}" class="w-full text-left px-2 py-1 rounded-lg flex items-center space-x-1.5 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 ${isActive ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 font-semibold' : 'text-slate-600 dark:text-slate-400'}" style="padding-left: ${depth * 10 + 6}px">
+                <i class="fa-solid fa-folder text-amber-500 text-xs"></i>
+                <span class="truncate">${folder.name}</span>
+              </button>
+              ${buildTree(folder.id, depth + 1)}
+            </div>
+          `;
+        }).join('');
+      }
+
+      container.innerHTML = buildTree('root') || `<span class="text-[10px] text-slate-400 italic px-2">No subfolders</span>`;
+    }
+
+    function updateBadges() {
+      document.getElementById('badgeMyDrive').innerText = state.items.filter(i => !i.isTrash && i.parentId === 'root').length;
+      document.getElementById('badgeStarred').innerText = state.items.filter(i => !i.isTrash && i.isStarred).length;
+      document.getElementById('badgeTrash').innerText = state.items.filter(i => i.isTrash).length;
+    }
+
+    /* ==========================================================================
+       6. FULLY FUNCTIONAL FILE INSPECTOR DRAWER
+       ========================================================================== */
+    async function updateInspector(itemId) {
+      state.activeInspectItemId = itemId;
+      const content = document.getElementById('inspectorContent');
+      const empty = document.getElementById('inspectorEmpty');
+      const item = state.items.find(i => i.id === itemId);
+
+      if (!item) {
+        content.classList.add('hidden');
+        empty.classList.remove('hidden');
+        return;
+      }
+
+      content.classList.remove('hidden');
+      empty.classList.add('hidden');
+      document.getElementById('inspectorDrawer').classList.remove('hidden');
+
+      // Basic Information
+      document.getElementById('inspectIcon').innerHTML = getFileIcon(item);
+      document.getElementById('inspectName').innerText = item.name;
+      document.getElementById('inspectSub').innerText = item.type === 'folder' ? 'Folder Directory' : formatBytes(item.size);
+      document.getElementById('inspectType').innerText = item.mimeType || item.ext || '-';
+      document.getElementById('inspectSize').innerText = item.type === 'folder' ? '-' : `${formatBytes(item.size)} (${item.chunkCount || 1} chunks)`;
+      document.getElementById('inspectCreated').innerText = formatDate(item.createdAt);
+      document.getElementById('inspectPath').innerText = item.parentId;
+
+      // Reset SHA-256 state display
+      document.getElementById('sha256Text').innerText = item.sha256 || 'Not calculated';
+      if (item.sha256) document.getElementById('copySha256Btn').classList.remove('hidden');
+      else document.getElementById('copySha256Btn').classList.add('hidden');
+
+      // Tags display
+      document.getElementById('inspectTags').innerHTML = (item.tags || []).map(t => `<span class="px-2 py-0.5 text-[10px] bg-slate-200 dark:bg-slate-800 rounded font-mono">#${t}</span>`).join('') || '<span class="text-slate-400 text-[10px]">None</span>';
+
+      // Folder Color Accent Picker Visibility
+      const folderColorBox = document.getElementById('folderColorBox');
+      if (item.type === 'folder') folderColorBox.classList.remove('hidden');
+      else folderColorBox.classList.add('hidden');
+
+      // Primary Download Button logic
+      const primaryDlBtn = document.getElementById('inspectPrimaryDownloadBtn');
+      const primaryDlText = document.getElementById('inspectPrimaryDownloadText');
+      if (item.type === 'folder') {
+        primaryDlText.innerText = 'Download Folder (ZIP)';
+        primaryDlBtn.onclick = () => downloadSingleFolderAsZip(item.id);
+      } else {
+        primaryDlText.innerText = `Download File (${formatBytes(item.size)})`;
+        primaryDlBtn.onclick = async () => {
+          showToast(`Preparing download for "${item.name}"...`);
+          const blob = await reconstructFileBlob(item.id);
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = item.name;
+          a.click();
+          URL.revokeObjectURL(url);
+        };
+      }
+
+      // Preview Action
+      document.getElementById('inspectBtnPreview').onclick = () => {
+        if (item.type === 'folder') {
+          state.currentFolderId = item.id;
+          state.selectedIds.clear();
+          refreshUI();
+        } else openPreviewModal(item);
+      };
+
+      // Hex View Action
+      document.getElementById('inspectBtnHex').onclick = () => {
+        if (item.type === 'file') openPreviewModal(item, 'hex');
+        else showToast('Hex view is only available for files');
+      };
+
+      // Star / Unstar Action
+      document.getElementById('inspectStarLabel').innerText = item.isStarred ? 'Unstar' : 'Star';
+      document.getElementById('inspectBtnStar').onclick = async () => {
+        item.isStarred = !item.isStarred;
+        await dbPutFile(item);
+        await refreshUI();
+      };
+
+      // Rename Action
+      document.getElementById('inspectBtnRename').onclick = () => {
+        const name = prompt('Rename item:', item.name);
+        if (name && name.trim()) {
+          item.name = name.trim();
+          item.updatedAt = Date.now();
+          dbPutFile(item).then(() => refreshUI());
+        }
+      };
+
+      // Move Action
+      document.getElementById('inspectBtnMove').onclick = () => openMoveModal([item.id]);
+
+      // Duplicate Action
+      document.getElementById('inspectBtnDuplicate').onclick = async () => {
+        if (item.type === 'file') {
+          showToast('Duplicating file metadata and chunks...');
+          const newId = generateId();
+          const dup = { ...item, id: newId, name: 'Copy of ' + item.name, createdAt: Date.now() };
+          await dbPutFile(dup);
+          const chunks = await dbGetChunksForFile(item.id);
+          for (const c of chunks) await dbPutChunk(`${newId}_chunk_${c.index}`, newId, c.index, c.buffer);
+          await refreshUI();
+          showToast('File duplicated successfully');
+        } else {
+          showToast('Folder duplicate feature: create new folder & copy contents');
+        }
+      };
+
+      // Trash vs Normal Delete / Restore Button visibility
+      const btnDelete = document.getElementById('inspectBtnDelete');
+      const btnRestore = document.getElementById('inspectBtnRestore');
+
+      if (item.isTrash) {
+        document.getElementById('inspectDeleteLabel').innerText = 'Delete Permanently';
+        btnRestore.classList.remove('hidden');
+        btnRestore.onclick = async () => {
+          item.isTrash = false;
+          await dbPutFile(item);
+          await refreshUI();
+          showToast(`Restored "${item.name}"`);
+        };
+        btnDelete.onclick = async () => {
+          await dbDeleteFileAndChunks(item.id);
+          state.activeInspectItemId = null;
+          await refreshUI();
+          showToast('Item permanently deleted');
+        };
+      } else {
+        document.getElementById('inspectDeleteLabel').innerText = 'Move to Trash';
+        btnRestore.classList.add('hidden');
+        btnDelete.onclick = async () => {
+          item.isTrash = true;
+          await dbPutFile(item);
+          await refreshUI();
+          showToast(`Moved "${item.name}" to Recycle Bin`);
+        };
+      }
+
+      // SHA-256 Calculation
+      document.getElementById('calcSha256Btn').onclick = async () => {
+        if (item.type === 'folder') return;
+        document.getElementById('sha256Text').innerText = 'Calculating SHA-256 digest...';
+        const blob = await reconstructFileBlob(item.id);
+        const buffer = await blob.arrayBuffer();
+        const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        item.sha256 = hashHex;
+        await dbPutFile(item);
+        document.getElementById('sha256Text').innerText = hashHex;
+        document.getElementById('copySha256Btn').classList.remove('hidden');
+        showToast('SHA-256 Checksum calculated');
+      };
+
+      document.getElementById('copySha256Btn').onclick = () => {
+        if (item.sha256) {
+          navigator.clipboard.writeText(item.sha256);
+          showToast('SHA-256 copied to clipboard!');
+        }
+      };
+
+      // Populate Inspector Move Location dropdown
+      populateInspectorMoveOptions(item);
+      document.getElementById('inspectMoveConfirmBtn').onclick = async () => {
+        const select = document.getElementById('inspectMoveSelect');
+        const targetId = select.value;
+        if (targetId) {
+          let idsToMove = [item.id];
+          if (state.selectedIds.has(item.id) && state.selectedIds.size > 1) {
+            idsToMove = Array.from(state.selectedIds);
+          }
+          await moveItemsToFolder(idsToMove, targetId);
+        }
+      };
+
+      // Tags Edit Action
+      document.getElementById('manageTagsBtn').onclick = () => openTagsModal(item.id);
+
+      // Folder Color Accent Picker Action
+      document.querySelectorAll('#inspectorColorPicker button').forEach(btn => {
+        btn.onclick = async () => {
+          if (item.type === 'folder') {
+            item.color = btn.dataset.color;
+            await dbPutFile(item);
+            await refreshUI();
+            showToast(`Folder color set to ${item.color}`);
+          }
+        };
+      });
+    }
+
+    async function downloadSingleFolderAsZip(folderId) {
+      const folder = state.items.find(i => i.id === folderId);
+      if (!folder) return;
+      showToast(`Compressing "${folder.name}" directory into ZIP...`);
+
+      if (typeof JSZip === 'undefined') {
+        showToast('JSZip library loading error. Falling back to individual downloads');
+        return;
+      }
+
+      const zip = new JSZip();
+
+      async function buildFolderZip(fId, zipContext) {
+        const children = state.items.filter(i => !i.isTrash && i.parentId === fId);
+        for (const child of children) {
+          if (child.type === 'file') {
+            const blob = await reconstructFileBlob(child.id);
+            zipContext.file(child.name, blob);
+          } else if (child.type === 'folder') {
+            const subDir = zipContext.folder(child.name);
+            await buildFolderZip(child.id, subDir);
+          }
+        }
+      }
+
+      await buildFolderZip(folderId, zip);
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${folder.name}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('ZIP Download initiated!');
+    }
+
+    /* ==========================================================================
+       7. HEX INSPECTOR & PREVIEW MODAL
+       ========================================================================== */
+    async function openPreviewModal(item, mode = 'standard') {
+      state.activePreviewItem = item;
+      const modal = document.getElementById('previewModal');
+
+      ['imageStage', 'audioStage', 'videoStage', 'textStage', 'hexStage', 'fallbackStage'].forEach(s => document.getElementById(s).classList.add('hidden'));
+      document.getElementById('textModeSwitch').classList.add('hidden');
+      document.getElementById('previewSaveBtn').classList.add('hidden');
+
+      document.getElementById('previewTitle').innerText = item.name;
+      document.getElementById('previewIcon').innerHTML = getFileIcon(item);
+
+      if (mode === 'hex') {
+        const hexStage = document.getElementById('hexStage');
+        hexStage.classList.remove('hidden');
+        const hexContainer = document.getElementById('hexContainer');
+        hexContainer.innerText = 'Loading byte stream...';
+
+        const blob = await reconstructFileBlob(item.id);
+        const slice = blob.slice(0, 1024);
+        const buffer = await slice.arrayBuffer();
+        const bytes = new Uint8Array(buffer);
+
+        let dump = '';
+        for (let i = 0; i < bytes.length; i += 16) {
+          const offset = i.toString(16).padStart(8, '0');
+          const chunk = bytes.slice(i, i + 16);
+          const hexVals = Array.from(chunk).map(b => b.toString(16).padStart(2, '0')).join(' ');
+          const asciiVals = Array.from(chunk).map(b => (b >= 32 && b <= 126) ? String.fromCharCode(b) : '.').join('');
+          dump += `${offset}  ${hexVals.padEnd(48, ' ')}  |${asciiVals}|\n`;
+        }
+        hexContainer.innerText = dump || 'Empty file';
+        
+        document.getElementById('copyHexModalBtn').onclick = () => {
+          navigator.clipboard.writeText(dump);
+          showToast('Hex dump copied to clipboard!');
+        };
+
+        modal.classList.remove('hidden');
+        return;
+      }
+
+      const cat = getFileCategory(item.ext, item.mimeType);
+
+      if (cat === 'image') {
+        const stage = document.getElementById('imageStage');
+        stage.classList.remove('hidden');
+        stage.classList.add('flex');
+        const blob = await reconstructFileBlob(item.id);
+        document.getElementById('previewImage').src = URL.createObjectURL(blob);
+        state.imageZoom = 1;
+        state.imageRotate = 0;
+        updateImageTransform();
+      } else if (cat === 'media' && (item.mimeType.startsWith('audio/') || ['mp3', 'wav', 'ogg'].includes(item.ext))) {
+        const stage = document.getElementById('audioStage');
+        stage.classList.remove('hidden');
+        stage.classList.add('flex');
+        const blob = await reconstructFileBlob(item.id);
+        const audio = document.getElementById('previewAudio');
+        audio.src = URL.createObjectURL(blob);
+        setupOscilloscope(audio);
+      } else if (cat === 'media' && (item.mimeType.startsWith('video/') || ['mp4', 'webm'].includes(item.ext))) {
+        const stage = document.getElementById('videoStage');
+        stage.classList.remove('hidden');
+        stage.classList.add('flex');
+        const blob = await reconstructFileBlob(item.id);
+        document.getElementById('previewVideo').src = URL.createObjectURL(blob);
+      } else if (cat === 'code' || cat === 'doc') {
+        const stage = document.getElementById('textStage');
+        stage.classList.remove('hidden');
+        document.getElementById('previewSaveBtn').classList.remove('hidden');
+
+        const blob = await reconstructFileBlob(item.id);
+        const text = await blob.text();
+
+        const editor = document.getElementById('textEditor');
+        const renderBox = document.getElementById('markdownRender');
+        editor.value = text;
+        renderBox.innerHTML = marked.parse(text);
+
+        const lines = text.split('\n').length;
+        const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+        document.getElementById('textStats').innerText = `${lines} lines | ${words} words | ${text.length} chars`;
+
+        if (item.ext === 'md') document.getElementById('textModeSwitch').classList.remove('hidden');
+      } else {
+        document.getElementById('fallbackStage').classList.remove('hidden');
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function updateImageTransform() {
+      const img = document.getElementById('previewImage');
+      img.style.transform = `scale(${state.imageZoom}) rotate(${state.imageRotate}deg)`;
+      document.getElementById('imgZoomVal').innerText = Math.round(state.imageZoom * 100) + '%';
+    }
+
+    function setupOscilloscope(audioEl) {
+      const canvas = document.getElementById('audioCanvas');
+      const ctx = canvas.getContext('2d');
+      if (!state.audioCtx) {
+        state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        state.audioAnalyser = state.audioCtx.createAnalyser();
+        state.audioAnalyser.fftSize = 128;
+        state.audioSource = state.audioCtx.createMediaElementSource(audioEl);
+        state.audioSource.connect(state.audioAnalyser);
+        state.audioAnalyser.connect(state.audioCtx.destination);
+      }
+      const bufferLength = state.audioAnalyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      function renderWave() {
+        state.animFrame = requestAnimationFrame(renderWave);
+        state.audioAnalyser.getByteFrequencyData(dataArray);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const barWidth = (canvas.width / bufferLength) * 1.5;
+        let x = 0;
+        for (let i = 0; i < bufferLength; i++) {
+          const barHeight = (dataArray[i] / 255) * canvas.height;
+          ctx.fillStyle = '#3b82f6';
+          ctx.fillRect(x, canvas.height - barHeight, barWidth - 1, barHeight);
+          x += barWidth;
+        }
+      }
+      renderWave();
+    }
+
+    function closePreviewModal() {
+      document.getElementById('previewModal').classList.add('hidden');
+      document.getElementById('previewAudio').pause();
+      document.getElementById('previewVideo').pause();
+      if (state.animFrame) cancelAnimationFrame(state.animFrame);
+    }
+
+    /* ==========================================================================
+       8. BATCH ZIP ARCHIVE & CATALOG BACKUP/RESTORE
+       ========================================================================== */
+    async function downloadBatchZip() {
+      const selected = state.items.filter(i => state.selectedIds.has(i.id));
+      if (selected.length === 0) return;
+
+      showToast('Building ZIP archive for selected items...');
+      const zip = new JSZip();
+
+      for (const item of selected) {
+        if (item.type === 'file') {
+          const blob = await reconstructFileBlob(item.id);
+          zip.file(item.name, blob);
+        }
+      }
+
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `flashport_export_${Date.now()}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('ZIP archive downloaded!');
+    }
+
+    async function exportCatalogBackup() {
+      const items = await dbGetAllFiles();
+      const exportData = JSON.stringify(items, null, 2);
+      const blob = new Blob([exportData], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `flashport_catalog_backup_${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('Catalog backup exported!');
+    }
+
+    async function importCatalogBackup(jsonText) {
+      try {
+        const items = JSON.parse(jsonText);
+        if (Array.isArray(items)) {
+          for (const item of items) {
+            await dbPutFile(item);
+          }
+          await refreshUI();
+          showToast('Catalog restored successfully!');
+        }
+      } catch (err) {
+        showToast('Invalid JSON backup file');
+      }
+    }
+
+    /* Helper to prevent moving folder into itself or its subfolder */
+    function isDescendantOf(targetFolderId, checkFolderId) {
+      if (targetFolderId === checkFolderId) return true;
+      let cur = state.items.find(i => i.id === targetFolderId);
+      while (cur && cur.parentId && cur.parentId !== 'root') {
+        if (cur.parentId === checkFolderId) return true;
+        cur = state.items.find(i => i.id === cur.parentId);
+      }
+      return false;
+    }
+
+    function populateInspectorMoveOptions(currentItem) {
+      const select = document.getElementById('inspectMoveSelect');
+      if (!select) return;
+
+      const folders = state.items.filter(i => !i.isTrash && i.type === 'folder');
+      
+      let html = `<option value="root" ${currentItem.parentId === 'root' ? 'selected' : ''}>📁 My Drive (Root)</option>`;
+
+      function buildOptions(parentId = 'root', depth = 1) {
+        const children = folders.filter(f => f.parentId === parentId);
+        children.forEach(f => {
+          if (currentItem.type === 'folder' && isDescendantOf(f.id, currentItem.id)) return;
+          const indent = '&nbsp;&nbsp;'.repeat(depth * 2);
+          const isSel = currentItem.parentId === f.id ? 'selected' : '';
+          html += `<option value="${f.id}" ${isSel}>${indent}📁 ${f.name}</option>`;
+          buildOptions(f.id, depth + 1);
+        });
+      }
+
+      buildOptions('root', 1);
+      select.innerHTML = html;
+    }
+
+    async function moveItemsToFolder(itemIds, targetFolderId) {
+      let movedCount = 0;
+      for (const id of itemIds) {
+        const item = state.items.find(i => i.id === id);
+        if (!item) continue;
+
+        // Prevent moving a folder into itself or its own subfolder
+        if (item.type === 'folder' && isDescendantOf(targetFolderId, id)) {
+          showToast(`Cannot move "${item.name}" into itself or its subfolder.`);
+          continue;
+        }
+
+        item.parentId = targetFolderId;
+        item.updatedAt = Date.now();
+        await dbPutFile(item);
+        movedCount++;
+      }
+
+      state.selectedIds.clear();
+      await refreshUI();
+      if (movedCount > 0) {
+        showToast(`Moved ${movedCount} item(s)`);
+      }
+    }
+
+    function updateBatchBar() {
+      const batchBar = document.getElementById('batchBar');
+      const sz = state.selectedIds.size;
+      if (sz > 0) {
+        batchBar.classList.remove('hidden');
+        batchBar.classList.add('flex');
+        document.getElementById('batchCount').innerText = `${sz} selected`;
+      } else {
+        batchBar.classList.add('hidden');
+      }
+    }
+
+    function updateSelectionVisuals() {
+      document.querySelectorAll('.item-card').forEach(card => {
+        const id = card.dataset.id;
+        const isSelected = state.selectedIds.has(id);
+        card.classList.toggle('selected', isSelected);
+        const chk = card.querySelector('.item-checkbox');
+        if (chk) chk.checked = isSelected;
+      });
+      updateBatchBar();
+    }
+
+    /* ==========================================================================
+       9. EVENT BINDINGS & DRAG RE-PARENTING
+       ========================================================================== */
+    window.addEventListener('DOMContentLoaded', async () => {
+      await initDB();
+      await refreshUI();
+
+      // Theme toggle
+      document.getElementById('themeToggleBtn').onclick = () => document.documentElement.classList.toggle('dark');
+
+      // Shortcuts Modal triggers
+      document.getElementById('shortcutsBtn').onclick = () => document.getElementById('shortcutsModal').classList.remove('hidden');
+      document.getElementById('closeShortcutsBtn').onclick = () => document.getElementById('shortcutsModal').classList.add('hidden');
+
+      // Preview Modal stage actions
+      document.getElementById('previewCloseBtn').onclick = closePreviewModal;
+      document.getElementById('previewDownloadBtn').onclick = async () => {
+        if (state.activePreviewItem) {
+          const blob = await reconstructFileBlob(state.activePreviewItem.id);
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = state.activePreviewItem.name;
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+      };
+      document.getElementById('fallbackDownloadBtn').onclick = () => {
+        document.getElementById('previewDownloadBtn').click();
+      };
+
+      document.getElementById('previewSaveBtn').onclick = async () => {
+        if (!state.activePreviewItem) return;
+        const text = document.getElementById('textEditor').value;
+        const blob = new Blob([text], { type: state.activePreviewItem.mimeType || 'text/plain' });
+        const buffer = await blob.arrayBuffer();
+        
+        state.activePreviewItem.size = blob.size;
+        state.activePreviewItem.updatedAt = Date.now();
+        await dbPutChunk(`${state.activePreviewItem.id}_chunk_0`, state.activePreviewItem.id, 0, buffer);
+        await dbPutFile(state.activePreviewItem);
+        await refreshUI();
+        showToast('File saved successfully!');
+      };
+
+      document.getElementById('btnTextEdit').onclick = () => {
+        document.getElementById('textEditor').classList.remove('hidden');
+        document.getElementById('markdownRender').classList.add('hidden');
+        document.getElementById('btnTextEdit').classList.add('bg-white', 'dark:bg-slate-700', 'text-blue-500');
+        document.getElementById('btnTextPreview').classList.remove('bg-white', 'dark:bg-slate-700', 'text-blue-500');
+      };
+
+      document.getElementById('btnTextPreview').onclick = () => {
+        const text = document.getElementById('textEditor').value;
+        document.getElementById('markdownRender').innerHTML = marked.parse(text);
+        document.getElementById('textEditor').classList.add('hidden');
+        document.getElementById('markdownRender').classList.remove('hidden');
+        document.getElementById('btnTextPreview').classList.add('bg-white', 'dark:bg-slate-700', 'text-blue-500');
+        document.getElementById('btnTextEdit').classList.remove('bg-white', 'dark:bg-slate-700', 'text-blue-500');
+      };
+
+      document.getElementById('imgZoomIn').onclick = () => { state.imageZoom = Math.min(3, state.imageZoom + 0.2); updateImageTransform(); };
+      document.getElementById('imgZoomOut').onclick = () => { state.imageZoom = Math.max(0.4, state.imageZoom - 0.2); updateImageTransform(); };
+      document.getElementById('imgRotate').onclick = () => { state.imageRotate = (state.imageRotate + 90) % 360; updateImageTransform(); };
+
+      // View switcher
+      document.getElementById('viewGridBtn').onclick = () => {
+        state.viewMode = 'grid';
+        renderExplorer();
+      };
+      document.getElementById('viewListBtn').onclick = () => {
+        state.viewMode = 'list';
+        renderExplorer();
+      };
+      document.getElementById('sortSelect').onchange = (e) => {
+        state.sortBy = e.target.value;
+        renderExplorer();
+      };
+
+      // Search bar
+      const searchInput = document.getElementById('searchInput');
+      searchInput.oninput = (e) => {
+        state.searchQuery = e.target.value;
+        if (state.searchQuery) document.getElementById('clearSearchBtn').classList.remove('hidden');
+        else document.getElementById('clearSearchBtn').classList.add('hidden');
+        renderExplorer();
+        renderBreadcrumb();
+      };
+      document.getElementById('clearSearchBtn').onclick = () => {
+        searchInput.value = '';
+        state.searchQuery = '';
+        document.getElementById('clearSearchBtn').classList.add('hidden');
+        renderExplorer();
+        renderBreadcrumb();
+      };
+
+      // Navigation Links
+      document.getElementById('navLinks').onclick = (e) => {
+        const btn = e.target.closest('button[data-target]');
+        if (!btn) return;
+        state.currentFolderId = btn.dataset.target;
+        state.activeCategory = null;
+        state.activeTag = null;
+        state.searchQuery = '';
+        state.selectedIds.clear();
+        refreshUI();
+      };
+
+      document.querySelectorAll('.cat-item').forEach(btn => {
+        btn.onclick = () => {
+          state.activeCategory = btn.dataset.category;
+          state.activeTag = null;
+          state.selectedIds.clear();
+          refreshUI();
+        };
+      });
+
+      document.getElementById('tagsListSidebar').onclick = (e) => {
+        const btn = e.target.closest('button[data-tagname]');
+        if (!btn) return;
+        state.activeTag = state.activeTag === btn.dataset.tagname ? null : btn.dataset.tagname;
+        state.activeCategory = null;
+        state.selectedIds.clear();
+        refreshUI();
+      };
+
+      document.getElementById('sidebarFolderTree').onclick = (e) => {
+        const btn = e.target.closest('button[data-treeid]');
+        if (!btn) return;
+        state.currentFolderId = btn.dataset.treeid;
+        state.selectedIds.clear();
+        refreshUI();
+      };
+
+      document.getElementById('breadcrumbNav').onclick = (e) => {
+        const btn = e.target.closest('button[data-crumbid]');
+        if (!btn) return;
+        state.currentFolderId = btn.dataset.crumbid;
+        state.selectedIds.clear();
+        refreshUI();
+      };
+
+      // Up to parent folder button action
+      document.getElementById('upFolderBtn').onclick = () => {
+        if (['starred', 'trash', 'recent'].includes(state.currentFolderId)) {
+          state.currentFolderId = 'root';
+        } else {
+          const cur = state.items.find(i => i.id === state.currentFolderId);
+          if (cur && cur.parentId) {
+            state.currentFolderId = cur.parentId;
+          } else {
+            state.currentFolderId = 'root';
+          }
+        }
+        state.selectedIds.clear();
+        refreshUI();
+      };
+
+      // Import Upload Handlers
+      const uploadDropdown = document.getElementById('uploadDropdown');
+      document.getElementById('uploadMenuBtn').onclick = () => uploadDropdown.classList.toggle('hidden');
+      document.getElementById('uploadFilesChoice').onclick = () => {
+        uploadDropdown.classList.add('hidden');
+        document.getElementById('fileUploadInput').click();
+      };
+      document.getElementById('uploadFolderChoice').onclick = () => {
+        uploadDropdown.classList.add('hidden');
+        document.getElementById('folderUploadInput').click();
+      };
+
+      document.getElementById('fileUploadInput').onchange = async (e) => {
+        const files = e.target.files;
+        let totalBytes = 0;
+        for (let i = 0; i < files.length; i++) totalBytes += files[i].size;
+        startTransferQueue(files.length, totalBytes);
+        for (let i = 0; i < files.length; i++) await saveFileInChunks(files[i], getTargetFolderId());
+        await refreshUI();
+        showToast('Upload finished!');
+      };
+
+      document.getElementById('folderUploadInput').onchange = async (e) => {
+        await handleFolderUploadInput(e.target.files);
+      };
+
+      // Backup Dropdown
+      const backupDropdown = document.getElementById('backupDropdown');
+      document.getElementById('backupMenuBtn').onclick = () => backupDropdown.classList.toggle('hidden');
+      document.getElementById('exportBackupBtn').onclick = () => {
+        backupDropdown.classList.add('hidden');
+        exportCatalogBackup();
+      };
+      document.getElementById('importBackupBtn').onclick = () => {
+        backupDropdown.classList.add('hidden');
+        document.getElementById('backupRestoreInput').click();
+      };
+      document.getElementById('backupRestoreInput').onchange = (e) => {
+        if (e.target.files[0]) {
+          const reader = new FileReader();
+          reader.onload = (evt) => importCatalogBackup(evt.target.result);
+          reader.readAsText(e.target.files[0]);
+        }
+      };
+
+      // Canvas Drag & Drop files from OS
+      const dropOverlay = document.getElementById('dropOverlay');
+      window.addEventListener('dragover', (e) => { 
+        e.preventDefault(); 
+        if (!state.isInternalDragging && e.dataTransfer && e.dataTransfer.types && (e.dataTransfer.types.includes('Files') || e.dataTransfer.types.includes('public.file-url'))) {
+          dropOverlay.classList.add('drop-active'); 
+        }
+      });
+      dropOverlay.addEventListener('dragleave', (e) => { e.preventDefault(); dropOverlay.classList.remove('drop-active'); });
+      dropOverlay.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        dropOverlay.classList.remove('drop-active');
+        if (e.dataTransfer.items) await processDroppedItems(e.dataTransfer.items);
+      });
+
+      // Explorer Interactions
+      const explorer = document.getElementById('explorerContainer');
+
+      explorer.onclick = (e) => {
+        const card = e.target.closest('.item-card');
+        const checkbox = e.target.closest('.item-checkbox');
+        const starBtn = e.target.closest('button[data-starid]');
+        const dlBtn = e.target.closest('button[data-dlid]');
+        const optBtn = e.target.closest('button[data-optid]');
+
+        if (dlBtn) {
+          e.stopPropagation();
+          const item = state.items.find(i => i.id === dlBtn.dataset.dlid);
+          if (item) {
+            if (item.type === 'folder') downloadSingleFolderAsZip(item.id);
+            else {
+              reconstructFileBlob(item.id).then(blob => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = item.name;
+                a.click();
+                URL.revokeObjectURL(url);
+              });
+            }
+          }
+          return;
+        }
+
+        if (starBtn) {
+          e.stopPropagation();
+          const item = state.items.find(i => i.id === starBtn.dataset.starid);
+          if (item) { item.isStarred = !item.isStarred; dbPutFile(item).then(() => refreshUI()); }
+          return;
+        }
+
+        if (optBtn) {
+          e.stopPropagation();
+          openContextMenu(e, optBtn.dataset.optid);
+          return;
+        }
+
+        if (checkbox) {
+          e.stopPropagation();
+          const id = checkbox.dataset.checkid;
+          if (checkbox.checked) state.selectedIds.add(id);
+          else state.selectedIds.delete(id);
+          updateSelectionVisuals();
+          return;
+        }
+
+        if (card) {
+          const id = card.dataset.id;
+          if (e.shiftKey && state.lastSelectedId) {
+            const filtered = getFilteredItems();
+            const i1 = filtered.findIndex(i => i.id === state.lastSelectedId);
+            const i2 = filtered.findIndex(i => i.id === id);
+            for (let i = Math.min(i1, i2); i <= Math.max(i1, i2); i++) state.selectedIds.add(filtered[i].id);
+          } else if (e.ctrlKey || e.metaKey) {
+            if (state.selectedIds.has(id)) state.selectedIds.delete(id);
+            else state.selectedIds.add(id);
+          } else {
+            state.selectedIds.clear();
+            state.selectedIds.add(id);
+          }
+          state.lastSelectedId = id;
+          updateInspector(id);
+          updateSelectionVisuals();
+        } else {
+          state.selectedIds.clear();
+          updateInspector(null);
+          updateSelectionVisuals();
+        }
+      };
+
+      explorer.ondblclick = (e) => {
+        const card = e.target.closest('.item-card');
+        if (!card) return;
+        const item = state.items.find(i => i.id === card.dataset.id);
+        if (!item) return;
+        if (item.type === 'folder') {
+          state.currentFolderId = item.id;
+          state.activeCategory = null;
+          state.activeTag = null;
+          state.searchQuery = '';
+          state.selectedIds.clear();
+          refreshUI();
+        } else openPreviewModal(item);
+      };
+
+      // Context Menu
+      explorer.oncontextmenu = (e) => {
+        const card = e.target.closest('.item-card');
+        if (card) {
+          e.preventDefault();
+          state.selectedIds.clear();
+          state.selectedIds.add(card.dataset.id);
+          renderExplorer();
+          openContextMenu(e, card.dataset.id);
+        }
+      };
+
+      function openContextMenu(e, itemId) {
+        state.contextItemId = itemId;
+        const menu = document.getElementById('contextMenu');
+        const item = state.items.find(i => i.id === itemId);
+        document.getElementById('ctxStarText').innerText = item.isStarred ? 'Unstar Item' : 'Star Item';
+        document.getElementById('ctxDeleteText').innerText = item.isTrash ? 'Delete Permanently' : 'Move to Trash';
+        menu.style.left = `${Math.min(e.clientX, window.innerWidth - 200)}px`;
+        menu.style.top = `${Math.min(e.clientY, window.innerHeight - 300)}px`;
+        menu.style.display = 'block';
+      }
+
+      document.onclick = () => document.getElementById('contextMenu').style.display = 'none';
+
+      document.getElementById('ctxOpen').onclick = () => {
+        const item = state.items.find(i => i.id === state.contextItemId);
+        if (item.type === 'folder') { state.currentFolderId = item.id; refreshUI(); }
+        else openPreviewModal(item);
+      };
+
+      document.getElementById('ctxHex').onclick = () => {
+        const item = state.items.find(i => i.id === state.contextItemId);
+        if (item && item.type === 'file') openPreviewModal(item, 'hex');
+      };
+
+      document.getElementById('ctxStar').onclick = () => {
+        const item = state.items.find(i => i.id === state.contextItemId);
+        if (item) { item.isStarred = !item.isStarred; dbPutFile(item).then(() => refreshUI()); }
+      };
+
+      document.getElementById('ctxRename').onclick = () => {
+        const item = state.items.find(i => i.id === state.contextItemId);
+        if (item) {
+          const name = prompt('Rename item:', item.name);
+          if (name && name.trim()) {
+            item.name = name.trim();
+            item.updatedAt = Date.now();
+            dbPutFile(item).then(() => refreshUI());
+          }
+        }
+      };
+
+      document.getElementById('ctxMove').onclick = () => openMoveModal([state.contextItemId]);
+
+      document.getElementById('ctxDuplicate').onclick = async () => {
+        const item = state.items.find(i => i.id === state.contextItemId);
+        if (item && item.type === 'file') {
+          const newId = generateId();
+          const dup = { ...item, id: newId, name: 'Copy of ' + item.name, createdAt: Date.now() };
+          await dbPutFile(dup);
+          const chunks = await dbGetChunksForFile(item.id);
+          for (const c of chunks) await dbPutChunk(`${newId}_chunk_${c.index}`, newId, c.index, c.buffer);
+          await refreshUI();
+          showToast('Duplicated!');
+        }
+      };
+
+      document.getElementById('ctxDownload').onclick = async () => {
+        const item = state.items.find(i => i.id === state.contextItemId);
+        if (item && item.type === 'file') {
+          const blob = await reconstructFileBlob(item.id);
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = item.name;
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+      };
+
+      document.getElementById('ctxDelete').onclick = async () => {
+        const item = state.items.find(i => i.id === state.contextItemId);
+        if (item) {
+          if (item.isTrash) await dbDeleteFileAndChunks(item.id);
+          else { item.isTrash = true; await dbPutFile(item); }
+          await refreshUI();
+          showToast('Item deleted');
+        }
+      };
+
+      // Batch Toolbar
+      document.getElementById('batchClearBtn').onclick = () => { state.selectedIds.clear(); renderExplorer(); };
+      document.getElementById('batchDeleteBtn').onclick = async () => {
+        for (const id of state.selectedIds) {
+          const item = state.items.find(i => i.id === id);
+          if (item) { item.isTrash = true; await dbPutFile(item); }
+        }
+        state.selectedIds.clear();
+        refreshUI();
+      };
+      document.getElementById('batchStarBtn').onclick = async () => {
+        for (const id of state.selectedIds) {
+          const item = state.items.find(i => i.id === id);
+          if (item) { item.isStarred = true; await dbPutFile(item); }
+        }
+        refreshUI();
+      };
+      document.getElementById('batchMoveBtn').onclick = () => openMoveModal(Array.from(state.selectedIds));
+      document.getElementById('batchDownloadBtn').onclick = () => downloadBatchZip();
+      document.getElementById('emptyTrashSidebarBtn').onclick = async () => {
+        const trash = state.items.filter(i => i.isTrash);
+        if (trash.length === 0) {
+          showToast('Recycle bin is already empty');
+          return;
+        }
+        for (const item of trash) await dbDeleteFileAndChunks(item.id);
+        await refreshUI();
+        showToast('Recycle Bin emptied');
+      };
+
+      // Inspector drawer toggle
+      const inspector = document.getElementById('inspectorDrawer');
+      document.getElementById('toggleInspectorBtn').onclick = () => inspector.classList.toggle('hidden');
+      document.getElementById('closeInspectorBtn').onclick = () => inspector.classList.add('hidden');
+
+      // Modals
+      const folderModal = document.getElementById('newFolderModal');
+      document.getElementById('newFolderBtn').onclick = () => {
+        document.getElementById('folderNameInput').value = '';
+        folderModal.classList.remove('hidden');
+      };
+      document.getElementById('cancelFolderBtn').onclick = () => folderModal.classList.add('hidden');
+      document.getElementById('saveFolderBtn').onclick = async () => {
+        const name = document.getElementById('folderNameInput').value.trim() || 'New Folder';
+        await dbPutFile({
+          id: generateId(),
+          name,
+          parentId: getTargetFolderId(),
+          type: 'folder',
+          color: 'blue',
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          isStarred: false,
+          isTrash: false,
+          tags: []
+        });
+        folderModal.classList.add('hidden');
+        await refreshUI();
+        showToast('Folder created!');
+      };
+
+      // Note Modal
+      const noteModal = document.getElementById('newNoteModal');
+      document.getElementById('newNoteBtn').onclick = () => {
+        document.getElementById('noteTitleInput').value = '';
+        document.getElementById('noteBodyInput').value = '';
+        noteModal.classList.remove('hidden');
+      };
+      document.getElementById('cancelNoteBtn').onclick = () => noteModal.classList.add('hidden');
+      document.getElementById('saveNoteBtn').onclick = async () => {
+        const title = document.getElementById('noteTitleInput').value.trim() || 'Untitled Note';
+        const type = document.getElementById('noteTypeInput').value;
+        const body = document.getElementById('noteBodyInput').value;
+        const fullName = title.endsWith('.' + type) ? title : `${title}.${type}`;
+
+        const blob = new Blob([body], { type: type === 'md' ? 'text/markdown' : 'text/plain' });
+        const buffer = await blob.arrayBuffer();
+        const fileRecord = {
+          id: generateId(),
+          name: fullName,
+          parentId: getTargetFolderId(),
+          type: 'file',
+          ext: type,
+          mimeType: type === 'md' ? 'text/markdown' : 'text/plain',
+          size: blob.size,
+          chunkCount: 1,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          isStarred: false,
+          isTrash: false,
+          tags: ['Note']
+        };
+
+        await dbPutChunk(`${fileRecord.id}_chunk_0`, fileRecord.id, 0, buffer);
+        await dbPutFile(fileRecord);
+        noteModal.classList.add('hidden');
+        await refreshUI();
+        showToast('Note created!');
+      };
+
+      // Move Modal
+      function openMoveModal(itemIds) {
+        const modal = document.getElementById('moveModal');
+        const treeBox = document.getElementById('moveFolderTree');
+        const folders = state.items.filter(i => !i.isTrash && i.type === 'folder' && !itemIds.includes(i.id));
+
+        function renderSelect(pId = 'root', depth = 0) {
+          const children = folders.filter(f => f.parentId === pId);
+          return children.map(f => `
+            <div style="padding-left:${depth * 10}px">
+              <button data-moveid="${f.id}" class="w-full text-left px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2">
+                <i class="fa-solid fa-folder text-amber-500"></i>
+                <span>${f.name}</span>
+              </button>
+              ${renderSelect(f.id, depth + 1)}
+            </div>
+          `).join('');
+        }
+
+        treeBox.innerHTML = `
+          <button data-moveid="root" class="w-full text-left px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2 font-semibold">
+            <i class="fa-solid fa-hard-drive text-blue-500"></i>
+            <span>My Drive (Root)</span>
+          </button>
+          ${renderSelect('root', 1)}
+        `;
+        modal.classList.remove('hidden');
+
+        let targetId = 'root';
+        treeBox.onclick = (e) => {
+          const btn = e.target.closest('button[data-moveid]');
+          if (!btn) return;
+          targetId = btn.dataset.moveid;
+          treeBox.querySelectorAll('button').forEach(b => b.classList.remove('bg-blue-100', 'dark:bg-blue-900/40', 'text-blue-600'));
+          btn.classList.add('bg-blue-100', 'dark:bg-blue-900/40', 'text-blue-600');
+        };
+
+        document.getElementById('confirmMoveBtn').onclick = async () => {
+          for (const id of itemIds) {
+            const item = state.items.find(i => i.id === id);
+            if (item) { item.parentId = targetId; await dbPutFile(item); }
+          }
+          modal.classList.add('hidden');
+          await refreshUI();
+          showToast('Items moved successfully!');
+        };
+      }
+      document.getElementById('cancelMoveBtn').onclick = () => document.getElementById('moveModal').classList.add('hidden');
+
+      // Tags Modal
+      function openTagsModal(itemId) {
+        const item = state.items.find(i => i.id === itemId);
+        if (!item) return;
+        const modal = document.getElementById('tagsModal');
+        const container = document.getElementById('modalTagPills');
+        let currentTags = item.tags ? [...item.tags] : [];
+
+        function renderModalTags() {
+          container.innerHTML = currentTags.map(t => `
+            <span class="px-2 py-0.5 text-xs bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 font-mono rounded flex items-center space-x-1">
+              <span>#${t}</span>
+              <button data-removetag="${t}" class="hover:text-rose-500"><i class="fa-solid fa-xmark text-[10px]"></i></button>
+            </span>
+          `).join('');
+        }
+        renderModalTags();
+        modal.classList.remove('hidden');
+
+        document.getElementById('addTagBtn').onclick = () => {
+          const val = document.getElementById('newTagInput').value.trim();
+          if (val && !currentTags.includes(val)) {
+            currentTags.push(val);
+            document.getElementById('newTagInput').value = '';
+            renderModalTags();
+          }
+        };
+
+        container.onclick = (e) => {
+          const btn = e.target.closest('button[data-removetag]');
+          if (btn) {
+            currentTags = currentTags.filter(t => t !== btn.dataset.removetag);
+            renderModalTags();
+          }
+        };
+
+        document.getElementById('saveTagsBtn').onclick = async () => {
+          item.tags = currentTags;
+          await dbPutFile(item);
+          modal.classList.add('hidden');
+          await refreshUI();
+          showToast('Tags updated!');
+        };
+      }
+
+      // Keyboard Shortcuts
+      window.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+        if (e.key === '/') {
+          e.preventDefault();
+          document.getElementById('searchInput').focus();
+        } else if (e.key === 'Escape') {
+          closePreviewModal();
+          document.getElementById('newFolderModal').classList.add('hidden');
+          document.getElementById('newNoteModal').classList.add('hidden');
+          document.getElementById('moveModal').classList.add('hidden');
+          document.getElementById('shortcutsModal').classList.add('hidden');
+          document.getElementById('tagsModal').classList.add('hidden');
+          document.getElementById('contextMenu').style.display = 'none';
+        } else if (e.key === ' ' && state.selectedIds.size === 1) {
+          e.preventDefault();
+          const id = Array.from(state.selectedIds)[0];
+          const item = state.items.find(i => i.id === id);
+          if (item && item.type === 'file') openPreviewModal(item);
+        } else if (e.key === 'F2' && state.selectedIds.size === 1) {
+          e.preventDefault();
+          const id = Array.from(state.selectedIds)[0];
+          const item = state.items.find(i => i.id === id);
+          if (item) {
+            const name = prompt('Rename item:', item.name);
+            if (name && name.trim()) {
+              item.name = name.trim();
+              item.updatedAt = Date.now();
+              dbPutFile(item).then(() => refreshUI());
+            }
+          }
+        } else if ((e.key === 'Delete' || e.key === 'Backspace') && state.selectedIds.size > 0) {
+          e.preventDefault();
+          document.getElementById('batchDeleteBtn').click();
+        } else if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+          e.preventDefault();
+          const filtered = getFilteredItems();
+          filtered.forEach(i => state.selectedIds.add(i.id));
+          renderExplorer();
+        }
+      });
+
+      // HTML5 Drag-and-Drop Re-parenting setup
+      explorer.ondragstart = (e) => {
+        const card = e.target.closest('.item-card');
+        if (card) {
+          state.isInternalDragging = true;
+          const id = card.dataset.id;
+          let idsToMove = [id];
+          if (state.selectedIds.has(id) && state.selectedIds.size > 1) {
+            idsToMove = Array.from(state.selectedIds);
+          }
+          state.draggedIds = idsToMove;
+          e.dataTransfer.setData('application/json', JSON.stringify(idsToMove));
+          e.dataTransfer.setData('text/plain', JSON.stringify(idsToMove));
+          e.dataTransfer.effectAllowed = 'move';
+        }
+      };
+
+      function getFolderDropTarget(e) {
+        const cardFolder = e.target.closest('.item-card[data-type="folder"]');
+        if (cardFolder) {
+          const folderId = cardFolder.dataset.id;
+          if (state.draggedIds.includes(folderId)) return null;
+          return { element: cardFolder, id: folderId };
+        }
+
+        const treeBtn = e.target.closest('button[data-treeid]');
+        if (treeBtn) {
+          const folderId = treeBtn.dataset.treeid;
+          if (state.draggedIds.includes(folderId)) return null;
+          return { element: treeBtn, id: treeBtn.dataset.treeid };
+        }
+
+        const crumbBtn = e.target.closest('button[data-crumbid]');
+        if (crumbBtn) {
+          const folderId = crumbBtn.dataset.crumbid;
+          if (state.draggedIds.includes(folderId)) return null;
+          return { element: crumbBtn, id: crumbBtn.dataset.crumbid };
+        }
+
+        const upBtn = e.target.closest('#upFolderBtn');
+        if (upBtn && !upBtn.disabled) {
+          const cur = state.items.find(i => i.id === state.currentFolderId);
+          const parentId = (cur && cur.parentId) ? cur.parentId : 'root';
+          if (!state.draggedIds.includes(parentId)) {
+            return { element: upBtn, id: parentId };
+          }
+        }
+
+        return null;
+      }
+
+      let currentDropTarget = null;
+      let activeDropTargetId = null;
+
+      document.addEventListener('dragover', (e) => {
+        if (!state.isInternalDragging && state.draggedIds.length === 0) return;
+        const target = getFolderDropTarget(e);
+        if (target) {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          if (currentDropTarget && currentDropTarget !== target.element) {
+            currentDropTarget.classList.remove('drag-over-target');
+          }
+          currentDropTarget = target.element;
+          activeDropTargetId = target.id;
+          currentDropTarget.classList.add('drag-over-target');
+        } else if (currentDropTarget) {
+          currentDropTarget.classList.remove('drag-over-target');
+          currentDropTarget = null;
+          activeDropTargetId = null;
+        }
+      });
+
+      document.addEventListener('dragend', () => {
+        state.isInternalDragging = false;
+        state.draggedIds = [];
+        if (currentDropTarget) {
+          currentDropTarget.classList.remove('drag-over-target');
+          currentDropTarget = null;
+          activeDropTargetId = null;
+        }
+      });
+
+      document.addEventListener('drop', async (e) => {
+        if (state.isInternalDragging || state.draggedIds.length > 0) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          const targetId = activeDropTargetId;
+          if (currentDropTarget) {
+            currentDropTarget.classList.remove('drag-over-target');
+            currentDropTarget = null;
+          }
+
+          const idsToMove = state.draggedIds.length ? [...state.draggedIds] : [];
+          state.isInternalDragging = false;
+          state.draggedIds = [];
+          activeDropTargetId = null;
+
+          if (targetId && idsToMove.length > 0) {
+            await moveItemsToFolder(idsToMove, targetId);
+          }
+        }
+      });
+    });
+  </script>
+</body>
+</html>
