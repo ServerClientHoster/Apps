@@ -1,0 +1,2105 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="paper" data-font="editorial" data-size="md" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WikiSearch — Knowledge & Research Explorer</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Newsreader (Editorial Serif), Inter (Sans Body), Lexend (Dyslexic), JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Lexend:wght@300;400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        serif: ['Newsreader', 'Georgia', 'serif'],
+                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                        dyslexic: ['Lexend', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* CSS Theme Custom Variables */
+        :root[data-theme="paper"] {
+            --bg-main: #FDFCF7;
+            --bg-card: #FFFFFF;
+            --bg-subtle: #F5F2E9;
+            --border-color: #E8E3D5;
+            --text-main: #1A1A1A;
+            --text-muted: #666053;
+            --accent: #B84A24;
+            --accent-hover: #963B1B;
+            --accent-light: #F9ECE8;
+        }
+
+        :root[data-theme="sepia"] {
+            --bg-main: #F4ECD8;
+            --bg-card: #FFF8E7;
+            --bg-subtle: #EADCB9;
+            --border-color: #D6C49C;
+            --text-main: #2C2219;
+            --text-muted: #705E4A;
+            --accent: #8C471A;
+            --accent-hover: #6E3612;
+            --accent-light: #EBDAC4;
+        }
+
+        :root[data-theme="dark"] {
+            --bg-main: #1E2022;
+            --bg-card: #282A2D;
+            --bg-subtle: #33363A;
+            --border-color: #404449;
+            --text-main: #E2E8F0;
+            --text-muted: #94A3B8;
+            --accent: #38BDF8;
+            --accent-hover: #0284C7;
+            --accent-light: #1E293B;
+        }
+
+        :root[data-theme="oled"] {
+            --bg-main: #000000;
+            --bg-card: #0D0D0D;
+            --bg-subtle: #171717;
+            --border-color: #262626;
+            --text-main: #E5E5E5;
+            --text-muted: #A3A3A3;
+            --accent: #F59E0B;
+            --accent-hover: #D97706;
+            --accent-light: #262626;
+        }
+
+        /* Reader Text Scaling */
+        :root[data-size="sm"] { --reader-scale: 0.85rem; font-size: 14px; }
+        :root[data-size="md"] { --reader-scale: 1rem; font-size: 16px; }
+        :root[data-size="lg"] { --reader-scale: 1.15rem; font-size: 18px; }
+        :root[data-size="xl"] { --reader-scale: 1.30rem; font-size: 20px; }
+
+        /* Typography Combinations */
+        :root[data-font="editorial"] body { font-family: 'Inter', sans-serif; }
+        :root[data-font="editorial"] h1, 
+        :root[data-font="editorial"] h2, 
+        :root[data-font="editorial"] h3, 
+        :root[data-font="editorial"] h4,
+        :root[data-font="editorial"] .font-editorial { font-family: 'Newsreader', Georgia, serif; }
+
+        :root[data-font="sans"] body,
+        :root[data-font="sans"] h1, 
+        :root[data-font="sans"] h2, 
+        :root[data-font="sans"] h3, 
+        :root[data-font="sans"] h4,
+        :root[data-font="sans"] .font-editorial { font-family: 'Inter', sans-serif; }
+
+        :root[data-font="serif"] body,
+        :root[data-font="serif"] h1, 
+        :root[data-font="serif"] h2, 
+        :root[data-font="serif"] h3, 
+        :root[data-font="serif"] h4,
+        :root[data-font="serif"] .font-editorial { font-family: 'Newsreader', Georgia, serif; }
+
+        :root[data-font="dyslexic"] body,
+        :root[data-font="dyslexic"] h1, 
+        :root[data-font="dyslexic"] h2, 
+        :root[data-font="dyslexic"] h3, 
+        :root[data-font="dyslexic"] h4,
+        :root[data-font="dyslexic"] .font-editorial { font-family: 'Lexend', sans-serif; letter-spacing: 0.03em; word-spacing: 0.05em; }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+
+        .bg-card { background-color: var(--bg-card); }
+        .bg-subtle { background-color: var(--bg-subtle); }
+        .border-custom { border-color: var(--border-color); }
+        .text-main { color: var(--text-main); }
+        .text-muted { color: var(--text-muted); }
+        .bg-accent { background-color: var(--accent); }
+        .text-accent { color: var(--accent); }
+        .border-accent { border-color: var(--accent); }
+        .bg-accent-light { background-color: var(--accent-light); }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(150, 150, 150, 0.3); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(150, 150, 150, 0.5); }
+
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* Floating Tooltip for Reader Selection */
+        #selection-tooltip {
+            position: absolute;
+            z-index: 60;
+            transform: translate(-50%, -100%);
+            margin-top: -8px;
+            pointer-events: auto;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-amber-500 selection:text-white">
+
+    <!-- Top Navigation Header -->
+    <header class="sticky top-0 z-30 bg-subtle border-b border-custom transition-colors">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+            <!-- Brand Logo -->
+            <a href="#" id="brand-logo" class="flex items-center gap-3 group focus:outline-none">
+                <div class="w-10 h-10 rounded-lg bg-accent text-white flex items-center justify-center font-bold text-xl font-mono shadow-sm">
+                    W
+                </div>
+                <div class="flex flex-col">
+                    <div class="flex items-center gap-2">
+                        <span class="text-2xl font-bold tracking-tight leading-none font-editorial group-hover:text-accent transition-colors">WikiSearch</span>
+                    </div>
+                    <span class="text-[10px] font-mono uppercase tracking-widest text-muted mt-1">Knowledge & Research Explorer</span>
+                </div>
+            </a>
+
+            <!-- Navigation Tabs -->
+            <nav class="hidden md:flex items-center gap-1 bg-card p-1 rounded-xl border border-custom text-xs font-medium">
+                <button data-tab="wiki" class="nav-tab-btn flex items-center gap-2 px-3.5 py-2 rounded-lg transition-all bg-accent text-white font-bold">
+                    <span>🔍 Wiki Search</span>
+                </button>
+                <button data-tab="dict" class="nav-tab-btn flex items-center gap-2 px-3.5 py-2 rounded-lg text-muted hover:text-main transition-all">
+                    <span>📖 Dictionary & Lexicon</span>
+                </button>
+                <button data-tab="compare" class="nav-tab-btn flex items-center gap-2 px-3.5 py-2 rounded-lg text-muted hover:text-main transition-all">
+                    <span>⚖️ Compare</span>
+                    <span id="compare-counter" class="px-1.5 py-0.2 text-[10px] font-mono font-bold rounded-full bg-accent text-white">0</span>
+                </button>
+                <button data-tab="saved" class="nav-tab-btn flex items-center gap-2 px-3.5 py-2 rounded-lg text-muted hover:text-main transition-all">
+                    <span>🔖 Saved & Notes</span>
+                    <span id="saved-counter" class="px-1.5 py-0.2 text-[10px] font-mono font-bold rounded-full bg-amber-600 text-white">0</span>
+                </button>
+            </nav>
+
+            <!-- Action Controls & Settings Button -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <!-- Multi-Language Selector -->
+                <div class="relative hidden sm:block">
+                    <select id="lang-select" aria-label="Select Search Language" class="appearance-none bg-card border border-custom text-xs sm:text-sm font-medium py-2 pl-3 pr-8 rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent transition-all">
+                        <option value="en">English (EN)</option>
+                        <option value="es">Español (ES)</option>
+                        <option value="fr">Français (FR)</option>
+                        <option value="de">Deutsch (DE)</option>
+                        <option value="it">Italiano (IT)</option>
+                        <option value="ja">日本語 (JA)</option>
+                        <option value="pt">Português (PT)</option>
+                        <option value="zh">中文 (ZH)</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-muted">
+                        <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
+                    </div>
+                </div>
+
+                <!-- Settings Modal Button -->
+                <button id="settings-btn" title="Open Settings Workspace" class="p-2.5 rounded-lg bg-card border border-custom hover:border-accent transition-colors flex items-center gap-2">
+                    <svg class="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    <span class="hidden lg:inline text-xs font-mono font-medium">Settings</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Navigation Bar -->
+        <div class="flex md:hidden items-center justify-around border-t border-custom py-2 bg-card text-xs">
+            <button data-tab="wiki" class="nav-tab-btn flex flex-col items-center gap-1 font-bold text-accent">
+                <span>🔍 Wiki</span>
+            </button>
+            <button data-tab="dict" class="nav-tab-btn flex flex-col items-center gap-1 text-muted">
+                <span>📖 Dictionary</span>
+            </button>
+            <button data-tab="compare" class="nav-tab-btn flex flex-col items-center gap-1 text-muted">
+                <span>⚖️ Compare</span>
+            </button>
+            <button data-tab="saved" class="nav-tab-btn flex flex-col items-center gap-1 text-muted">
+                <span>🔖 Saved</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Quick Status Bar -->
+    <div class="bg-card border-b border-custom py-1.5 px-4 text-xs font-mono text-muted">
+        <div class="max-w-7xl mx-auto w-full flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <span>Lang: <strong id="stat-lang" class="text-main">EN</strong></span>
+                <span>Mode: <strong id="stat-mode" class="text-main">Wiki Search</strong></span>
+            </div>
+            <div class="hidden sm:flex items-center gap-3">
+                <span>Focus Search: <kbd class="px-1.5 py-0.5 bg-subtle border border-custom rounded text-[10px]">/</kbd></span>
+                <span>Close Modal: <kbd class="px-1.5 py-0.5 bg-subtle border border-custom rounded text-[10px]">Esc</kbd></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Workspace Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-8">
+
+        <!-- ================= SECTION 1: WIKIPEDIA SEARCH VIEW ================= -->
+        <section id="view-wiki" class="tab-view flex flex-col gap-8">
+            <div class="max-w-3xl mx-auto w-full text-center flex flex-col items-center pt-2 sm:pt-4">
+                <h1 class="text-3xl sm:text-5xl font-bold tracking-tight text-main mb-3 font-editorial leading-tight">
+                    Knowledge & Research Explorer
+                </h1>
+                <p class="text-sm sm:text-base text-muted max-w-xl mb-6 leading-relaxed">
+                    Search Wikipedia entries with analytics, dictionary lookups, side-by-side comparison, and research tools.
+                </p>
+
+                <!-- Search Input Container -->
+                <div class="relative w-full">
+                    <form id="search-form" class="relative flex items-center">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-muted">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                        </div>
+                        <input 
+                            type="text" 
+                            id="search-input"
+                            placeholder="Search topics, science, history, geography, arts..." 
+                            autocomplete="off"
+                            class="w-full pl-12 pr-36 py-3.5 text-base sm:text-lg bg-card border border-custom rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-accent text-main placeholder-muted transition-all"
+                        />
+                        <div class="absolute right-3 flex items-center gap-2">
+                            <button type="button" id="clear-search-btn" class="hidden p-1.5 text-muted hover:text-main rounded-md transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                            <button type="button" id="random-btn" title="Discover Random Article" class="hidden sm:inline-flex items-center gap-1 text-xs font-bold text-accent bg-accent-light px-2.5 py-1.5 rounded-md border border-accent/20 hover:bg-accent hover:text-white transition-colors">
+                                🎲 Curious
+                            </button>
+                            <button type="submit" class="bg-accent text-white font-medium px-4 py-2 rounded-lg text-sm hover:opacity-90 transition-opacity">
+                                Search
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Autocomplete Dropdown -->
+                    <div id="suggestions-box" class="hidden absolute top-full left-0 right-0 mt-2 bg-card border border-custom rounded-xl shadow-xl overflow-hidden z-20 text-left">
+                        <ul id="suggestions-list" class="divide-y divide-custom">
+                            <!-- Dynamic suggestions -->
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Curated Topic Chips -->
+                <div id="curated-chips" class="flex flex-wrap items-center justify-center gap-2 mt-4 text-xs">
+                    <span class="text-muted font-mono uppercase tracking-wider text-[11px] mr-1">Popular Topics:</span>
+                    <button class="chip-btn px-3 py-1 rounded-full bg-card border border-custom hover:border-accent text-main transition-colors">Artificial Intelligence</button>
+                    <button class="chip-btn px-3 py-1 rounded-full bg-card border border-custom hover:border-accent text-main transition-colors">Solar System</button>
+                    <button class="chip-btn px-3 py-1 rounded-full bg-card border border-custom hover:border-accent text-main transition-colors">Renaissance Art</button>
+                    <button class="chip-btn px-3 py-1 rounded-full bg-card border border-custom hover:border-accent text-main transition-colors">Oceanography</button>
+                    <button class="chip-btn px-3 py-1 rounded-full bg-card border border-custom hover:border-accent text-main transition-colors">Photosynthesis</button>
+                </div>
+            </div>
+
+            <!-- Toolbar / Controls -->
+            <div id="results-header" class="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-3 border-b border-custom gap-3">
+                <div>
+                    <h2 id="view-title" class="text-xl sm:text-2xl font-bold text-main font-editorial">
+                        Search Results
+                    </h2>
+                    <p id="view-subtitle" class="text-xs sm:text-sm text-muted">
+                        Fetching entries from MediaWiki API.
+                    </p>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <div id="sort-container" class="flex items-center gap-2 text-xs font-mono">
+                        <span class="text-muted uppercase">Sort:</span>
+                        <select id="sort-select" class="bg-card border border-custom font-sans font-medium py-1.5 px-2.5 rounded-lg text-main focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer">
+                            <option value="relevance">Relevance</option>
+                            <option value="length">Length (Words)</option>
+                            <option value="title">Alphabetical (A-Z)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cards Grid -->
+            <div id="cards-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Dynamic cards or skeletons -->
+            </div>
+        </section>
+
+
+        <!-- ================= SECTION 2: DICTIONARY & LEXICON VIEW ================= -->
+        <section id="view-dict" class="tab-view hidden flex flex-col gap-8">
+            <div class="max-w-3xl mx-auto w-full text-center flex flex-col items-center pt-2 sm:pt-4">
+                <h2 class="text-3xl sm:text-5xl font-bold tracking-tight text-main mb-3 font-editorial leading-tight">
+                    Lexicon & Dictionary
+                </h2>
+                <p class="text-sm sm:text-base text-muted max-w-xl mb-6 leading-relaxed">
+                    Live word lookups, phonetics text, parts of speech, synonyms, and direct Wikipedia exploration.
+                </p>
+
+                <!-- Dictionary Input -->
+                <div class="relative w-full">
+                    <form id="dict-form" class="relative flex items-center">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-muted">
+                            📖
+                        </div>
+                        <input 
+                            type="text" 
+                            id="dict-input"
+                            placeholder="Type any word (e.g. Serendipity, Ephemeral, Photosynthesis)..." 
+                            autocomplete="off"
+                            class="w-full pl-12 pr-28 py-3.5 text-base sm:text-lg bg-card border border-custom rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-accent text-main placeholder-muted transition-all"
+                        />
+                        <div class="absolute right-3 flex items-center gap-2">
+                            <button type="submit" class="bg-accent text-white font-medium px-4 py-2 rounded-lg text-sm hover:opacity-90 transition-opacity">
+                                Define
+                            </button>
+                        </div>
+                    </form>
+
+                    <div id="dict-suggestions-box" class="hidden absolute top-full left-0 right-0 mt-2 bg-card border border-custom rounded-xl shadow-xl overflow-hidden z-20 text-left">
+                        <ul id="dict-suggestions-list" class="divide-y divide-custom"></ul>
+                    </div>
+                </div>
+
+                <!-- Sample Terms -->
+                <div class="flex flex-wrap items-center justify-center gap-2 mt-4 text-xs">
+                    <span class="text-muted font-mono uppercase tracking-wider text-[11px] mr-1">Try Terms:</span>
+                    <button class="dict-chip-btn px-3 py-1 rounded-full bg-card border border-custom hover:border-accent text-main transition-colors">Paradigm</button>
+                    <button class="dict-chip-btn px-3 py-1 rounded-full bg-card border border-custom hover:border-accent text-main transition-colors">Juxtaposition</button>
+                    <button class="dict-chip-btn px-3 py-1 rounded-full bg-card border border-custom hover:border-accent text-main transition-colors">Cognition</button>
+                    <button class="dict-chip-btn px-3 py-1 rounded-full bg-card border border-custom hover:border-accent text-main transition-colors">Resilience</button>
+                </div>
+            </div>
+
+            <!-- Dictionary Results -->
+            <div id="dict-results-container" class="max-w-4xl mx-auto w-full space-y-6"></div>
+        </section>
+
+
+        <!-- ================= SECTION 3: SIDE-BY-SIDE COMPARE VIEW ================= -->
+        <section id="view-compare" class="tab-view hidden flex flex-col gap-6">
+            <div class="pb-3 border-b border-custom flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div>
+                    <h2 class="text-2xl font-bold text-main font-editorial">Side-by-Side Article Comparison</h2>
+                    <p class="text-xs sm:text-sm text-muted">Compare word counts, readability scores, extracts, and language options for 2 articles.</p>
+                </div>
+                <button id="clear-compare-btn" class="text-xs font-mono px-3 py-1.5 rounded bg-card border border-custom hover:border-red-500 text-red-500 transition-colors">
+                    Clear Comparison Tray
+                </button>
+            </div>
+
+            <div id="compare-tab-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+        </section>
+
+
+        <!-- ================= SECTION 4: SAVED & NOTES VIEW ================= -->
+        <section id="view-saved" class="tab-view hidden flex flex-col gap-6">
+            <div class="pb-3 border-b border-custom flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div>
+                    <h2 class="text-2xl font-bold text-main font-editorial">Saved Bookmarks & Personal Notes</h2>
+                    <p class="text-xs sm:text-sm text-muted">Manage your saved articles, vocabulary terms, and research notes.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="export-json-btn" class="text-xs font-mono font-bold px-3 py-1.5 rounded bg-card border border-custom hover:border-accent text-main transition-colors">
+                        Export JSON
+                    </button>
+                    <button id="export-md-btn" class="text-xs font-mono font-bold px-3 py-1.5 rounded bg-card border border-custom hover:border-accent text-main transition-colors">
+                        Export Markdown (.md)
+                    </button>
+                </div>
+            </div>
+
+            <div id="saved-list-container" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+        </section>
+
+    </main>
+
+    <!-- Contextual Selection Tooltip for Word Lookups inside Reader Modal -->
+    <div id="selection-tooltip" class="hidden bg-main border border-custom rounded-xl shadow-2xl p-2 flex items-center gap-2 text-xs font-mono z-50">
+        <span class="text-main font-semibold truncate max-w-[120px]" id="tooltip-selected-text"></span>
+        <button id="tooltip-define-btn" class="px-2.5 py-1 rounded bg-accent text-white font-sans font-bold hover:opacity-90 transition-opacity">
+            📖 Define Word
+        </button>
+    </div>
+
+    <!-- Article Reader Modal -->
+    <div id="article-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-black/60 backdrop-blur-sm transition-opacity duration-200 opacity-0">
+        <div class="bg-card border border-custom rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden transform scale-95 transition-transform duration-200" id="modal-container">
+            
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-custom flex items-center justify-between bg-subtle">
+                <div class="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-accent">
+                    <span id="modal-lang-badge" class="px-2 py-0.5 rounded bg-accent-light border border-accent/20 font-bold">EN</span>
+                    <span>Article Reader & Analytics</span>
+                </div>
+                <div class="flex items-center gap-1 sm:gap-2">
+                    <button id="modal-cite-btn" title="Generate Citations" class="p-2 text-muted hover:text-accent rounded-lg transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+                    </button>
+                    <button id="modal-compare-btn" title="Add to Compare" class="p-2 text-muted hover:text-accent rounded-lg transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 0-2-2h-2a2 2 0 0-2 2"/></svg>
+                    </button>
+                    <button id="modal-bookmark-btn" title="Save Bookmark" class="p-2 text-muted hover:text-amber-500 rounded-lg transition-colors">
+                        <svg id="modal-bookmark-icon" class="w-5 h-5 fill-none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
+                    </button>
+                    <button id="modal-close-btn" title="Close (Esc)" class="p-2 text-muted hover:text-main rounded-lg transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Scrollable Reader Modal Content -->
+            <div class="p-6 sm:p-8 overflow-y-auto space-y-6">
+                <!-- Title & Meta -->
+                <div>
+                    <h2 id="modal-title" class="text-3xl sm:text-4xl font-bold tracking-tight text-main font-editorial leading-tight mb-3">
+                        Article Title
+                    </h2>
+                    <div class="flex flex-wrap items-center gap-3 text-xs font-mono text-muted">
+                        <span id="modal-word-count">0 words</span>
+                        <span>•</span>
+                        <span id="modal-read-time">1 min read</span>
+                        <span>•</span>
+                        <span id="modal-readability-score" class="px-2 py-0.5 rounded bg-subtle border border-custom text-main font-semibold">
+                            Flesch Score: --
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Featured Image -->
+                <div id="modal-image-container" class="hidden rounded-xl overflow-hidden border border-custom max-h-80 bg-subtle">
+                    <img id="modal-image" src="" alt="Article thumbnail" class="w-full h-full object-cover">
+                </div>
+
+                <div id="modal-tip-banner" class="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-300 font-mono">
+                    💡 <strong>Tip:</strong> Highlight any word in the article body to look it up in the Dictionary!
+                </div>
+
+                <!-- Extract Body Text -->
+                <div id="modal-extract" class="text-base sm:text-lg leading-relaxed text-main space-y-4"></div>
+
+                <!-- Notes Editor -->
+                <div class="p-4 rounded-xl bg-subtle border border-custom space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-mono uppercase font-bold tracking-wider text-muted">Personal Research Notes</span>
+                        <button id="modal-save-note-btn" class="text-xs px-2.5 py-1 rounded bg-accent text-white font-medium hover:opacity-90 transition-opacity">
+                            Save Note
+                        </button>
+                    </div>
+                    <textarea id="modal-note-input" rows="3" placeholder="Write personal observations, citations, or research takeaways for this article..." class="w-full p-2.5 text-sm bg-card border border-custom rounded-lg text-main placeholder-muted focus:outline-none focus:ring-1 focus:ring-accent"></textarea>
+                </div>
+
+                <!-- Rabbit Hole Related Topics -->
+                <div class="pt-4 border-t border-custom">
+                    <h4 class="text-xs font-mono uppercase tracking-wider font-semibold text-muted mb-3">Explore Related Topics (Rabbit Hole):</h4>
+                    <div id="modal-topics-chips" class="flex flex-wrap gap-2"></div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-6 py-4 border-t border-custom bg-subtle flex flex-col sm:flex-row items-center justify-between gap-3">
+                <span class="text-xs text-muted font-mono">Source: MediaWiki API</span>
+                <a id="modal-external-link" href="#" target="_blank" rel="noopener" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-accent text-white font-medium text-sm hover:opacity-90 transition-opacity">
+                    <span>Open Full Article on Wikipedia</span>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formatted Citations Modal -->
+    <div id="cite-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity duration-200 opacity-0">
+        <div class="bg-card border border-custom rounded-2xl shadow-2xl w-full max-w-xl p-6 space-y-5">
+            <div class="flex items-center justify-between border-b border-custom pb-3">
+                <h3 class="text-lg font-bold text-main font-editorial">Formatted Citation References</h3>
+                <button id="cite-close-btn" class="p-1.5 text-muted hover:text-main rounded-lg">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <div class="space-y-4 text-xs font-mono">
+                <div class="p-3 bg-subtle border border-custom rounded-lg space-y-1">
+                    <div class="flex items-center justify-between text-accent font-bold">
+                        <span>APA 7th Edition</span>
+                        <button class="copy-cite-btn px-2 py-0.5 bg-card border border-custom rounded hover:border-accent text-main" data-format="apa">Copy</button>
+                    </div>
+                    <p id="cite-apa" class="text-main font-sans text-xs break-all"></p>
+                </div>
+
+                <div class="p-3 bg-subtle border border-custom rounded-lg space-y-1">
+                    <div class="flex items-center justify-between text-accent font-bold">
+                        <span>MLA 9th Edition</span>
+                        <button class="copy-cite-btn px-2 py-0.5 bg-card border border-custom rounded hover:border-accent text-main" data-format="mla">Copy</button>
+                    </div>
+                    <p id="cite-mla" class="text-main font-sans text-xs break-all"></p>
+                </div>
+
+                <div class="p-3 bg-subtle border border-custom rounded-lg space-y-1">
+                    <div class="flex items-center justify-between text-accent font-bold">
+                        <span>Chicago Manual of Style</span>
+                        <button class="copy-cite-btn px-2 py-0.5 bg-card border border-custom rounded hover:border-accent text-main" data-format="chicago">Copy</button>
+                    </div>
+                    <p id="cite-chicago" class="text-main font-sans text-xs break-all"></p>
+                </div>
+
+                <div class="p-3 bg-subtle border border-custom rounded-lg space-y-1">
+                    <div class="flex items-center justify-between text-accent font-bold">
+                        <span>Harvard Reference Style</span>
+                        <button class="copy-cite-btn px-2 py-0.5 bg-card border border-custom rounded hover:border-accent text-main" data-format="harvard">Copy</button>
+                    </div>
+                    <p id="cite-harvard" class="text-main font-sans text-xs break-all"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Workspace Modal -->
+    <div id="settings-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity duration-200 opacity-0">
+        <div class="bg-card border border-custom rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-6 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-custom pb-3">
+                <h3 class="text-xl font-bold text-main font-editorial">Settings & Preferences</h3>
+                <button id="settings-close-btn" class="p-1.5 text-muted hover:text-main rounded-lg">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <!-- Settings Controls -->
+            <div class="space-y-6 text-sm">
+                <!-- Color Palette Theme Selector -->
+                <div>
+                    <label class="block font-mono text-xs uppercase tracking-wider text-muted font-bold mb-2.5">Color Palette Theme</label>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        <button class="theme-opt-btn p-2.5 rounded-lg border border-custom text-center text-xs font-medium bg-[#FDFCF7] text-[#1A1A1A]" data-theme="paper">Paper Light</button>
+                        <button class="theme-opt-btn p-2.5 rounded-lg border border-custom text-center text-xs font-medium bg-[#F4ECD8] text-[#2C2219]" data-theme="sepia">Sepia Vintage</button>
+                        <button class="theme-opt-btn p-2.5 rounded-lg border border-custom text-center text-xs font-medium bg-[#1E2022] text-[#E2E8F0]" data-theme="dark">Dark Slate</button>
+                        <button class="theme-opt-btn p-2.5 rounded-lg border border-custom text-center text-xs font-medium bg-[#000000] text-[#E5E5E5]" data-theme="oled">OLED Black</button>
+                    </div>
+                </div>
+
+                <!-- Typography Preset Selector -->
+                <div>
+                    <label class="block font-mono text-xs uppercase tracking-wider text-muted font-bold mb-2.5">Typography Combination</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button class="font-opt-btn p-2.5 rounded-lg border border-custom text-xs text-center" data-font="editorial">Editorial (Newsreader + Inter)</button>
+                        <button class="font-opt-btn p-2.5 rounded-lg border border-custom text-xs font-sans text-center" data-font="sans">Clean Sans-Serif (Inter)</button>
+                        <button class="font-opt-btn p-2.5 rounded-lg border border-custom text-xs font-serif text-center" data-font="serif">Classic Serif (Newsreader)</button>
+                        <button class="font-opt-btn p-2.5 rounded-lg border border-custom text-xs font-sans tracking-wide text-center" data-font="dyslexic">Dyslexic-Friendly (Lexend)</button>
+                    </div>
+                </div>
+
+                <!-- Reader Text Scale -->
+                <div>
+                    <label class="block font-mono text-xs uppercase tracking-wider text-muted font-bold mb-2.5">Reader Font Scale</label>
+                    <div class="grid grid-cols-4 gap-2">
+                        <button class="size-opt-btn p-2 rounded-lg border border-custom text-xs text-center" data-size="sm">Small (85%)</button>
+                        <button class="size-opt-btn p-2 rounded-lg border border-custom text-xs text-center" data-size="md">Medium (100%)</button>
+                        <button class="size-opt-btn p-2 rounded-lg border border-custom text-xs text-center" data-size="lg">Large (115%)</button>
+                        <button class="size-opt-btn p-2 rounded-lg border border-custom text-xs text-center" data-size="xl">XL (130%)</button>
+                    </div>
+                </div>
+
+                <!-- Search & UI Toggles -->
+                <div class="space-y-4 pt-3 border-t border-custom">
+                    <div class="flex items-center justify-between">
+                        <label class="font-mono text-xs uppercase tracking-wider text-muted font-bold">Results Per Page</label>
+                        <select id="limit-select" class="bg-card border border-custom text-xs font-mono py-1 px-3 rounded cursor-pointer">
+                            <option value="6">6 Articles</option>
+                            <option value="12" selected>12 Articles</option>
+                            <option value="18">18 Articles</option>
+                            <option value="24">24 Articles</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <span class="block text-xs font-bold text-main">Autocomplete Suggestions</span>
+                            <span class="text-[11px] text-muted">Show real-time topic dropdown as you type</span>
+                        </div>
+                        <input type="checkbox" id="toggle-autocomplete" class="w-4 h-4 rounded text-accent cursor-pointer" checked>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <span class="block text-xs font-bold text-main">In-Article Quick Definition</span>
+                            <span class="text-[11px] text-muted">Show floating definition popover on text selection</span>
+                        </div>
+                        <input type="checkbox" id="toggle-popover" class="w-4 h-4 rounded text-accent cursor-pointer" checked>
+                    </div>
+                </div>
+
+                <!-- Reset Options -->
+                <div class="pt-4 border-t border-custom flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <button id="reset-saved-btn" class="w-full sm:w-auto px-3 py-1.5 rounded border border-red-500/30 text-red-500 hover:bg-red-500/10 text-xs font-mono font-bold transition-colors">
+                        Clear Bookmarks & Notes
+                    </button>
+                    <button id="reset-defaults-btn" class="w-full sm:w-auto px-3 py-1.5 rounded border border-custom text-muted hover:text-main text-xs font-mono font-bold transition-colors">
+                        Reset Defaults
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Skeleton Card Template -->
+    <template id="skeleton-template">
+        <div class="animate-pulse bg-card border border-custom rounded-xl p-5 flex flex-col h-72 justify-between">
+            <div>
+                <div class="h-5 bg-subtle rounded w-3/4 mb-3"></div>
+                <div class="h-3.5 bg-subtle rounded w-full mb-2"></div>
+                <div class="h-3.5 bg-subtle rounded w-5/6 mb-2"></div>
+                <div class="h-3.5 bg-subtle rounded w-2/3"></div>
+            </div>
+            <div class="flex justify-between items-center pt-4 border-t border-custom">
+                <div class="h-4 bg-subtle rounded w-20"></div>
+                <div class="h-7 bg-subtle rounded w-24"></div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- JavaScript Application Engine -->
+    <script>
+        /**
+         * WikiSearch Application Controller
+         */
+        const App = {
+            state: {
+                activeTab: 'wiki',
+                query: '',
+                lang: localStorage.getItem('wikisearch_lang') || 'en',
+                results: [],
+                saved: JSON.parse(localStorage.getItem('wikisearch_saved') || '[]'),
+                comparisonList: [],
+                theme: localStorage.getItem('wikisearch_theme') || 'paper',
+                font: localStorage.getItem('wikisearch_font') || 'editorial',
+                size: localStorage.getItem('wikisearch_size') || 'md',
+                limit: parseInt(localStorage.getItem('wikisearch_limit') || '12', 10),
+                enableAutocomplete: localStorage.getItem('wikisearch_autocomplete') !== 'false',
+                enablePopover: localStorage.getItem('wikisearch_popover') !== 'false',
+                sortBy: 'relevance',
+                activeModalArticle: null,
+                isLoading: false,
+                debounceTimer: null,
+                dictDebounceTimer: null,
+                selectedTextWord: ''
+            },
+
+            el: {},
+
+            init() {
+                this.cacheElements();
+                this.applyPreferences();
+                this.bindEvents();
+                this.updateCounters();
+
+                // Initial Load Topic
+                this.fetchSearch('Artificial Intelligence');
+            },
+
+            cacheElements() {
+                this.el = {
+                    html: document.documentElement,
+                    statLang: document.getElementById('stat-lang'),
+                    statMode: document.getElementById('stat-mode'),
+
+                    navBtns: document.querySelectorAll('.nav-tab-btn'),
+                    tabViews: document.querySelectorAll('.tab-view'),
+
+                    // Wiki Search
+                    searchInput: document.getElementById('search-input'),
+                    searchForm: document.getElementById('search-form'),
+                    clearSearchBtn: document.getElementById('clear-search-btn'),
+                    suggestionsBox: document.getElementById('suggestions-box'),
+                    suggestionsList: document.getElementById('suggestions-list'),
+                    langSelect: document.getElementById('lang-select'),
+                    randomBtn: document.getElementById('random-btn'),
+                    cardsGrid: document.getElementById('cards-grid'),
+                    skeletonTemplate: document.getElementById('skeleton-template'),
+                    resultsHeader: document.getElementById('results-header'),
+                    viewTitle: document.getElementById('view-title'),
+                    viewSubtitle: document.getElementById('view-subtitle'),
+                    sortSelect: document.getElementById('sort-select'),
+                    sortContainer: document.getElementById('sort-container'),
+                    brandLogo: document.getElementById('brand-logo'),
+                    curatedChips: document.getElementById('curated-chips'),
+
+                    // Dictionary
+                    dictInput: document.getElementById('dict-input'),
+                    dictForm: document.getElementById('dict-form'),
+                    dictSuggestionsBox: document.getElementById('dict-suggestions-box'),
+                    dictSuggestionsList: document.getElementById('dict-suggestions-list'),
+                    dictResultsContainer: document.getElementById('dict-results-container'),
+
+                    // Compare View
+                    compareTabGrid: document.getElementById('compare-tab-grid'),
+                    clearCompareBtn: document.getElementById('clear-compare-btn'),
+
+                    // Saved & Notes
+                    savedListContainer: document.getElementById('saved-list-container'),
+                    exportJsonBtn: document.getElementById('export-json-btn'),
+                    exportMdBtn: document.getElementById('export-md-btn'),
+
+                    // Selection Tooltip
+                    selectionTooltip: document.getElementById('selection-tooltip'),
+                    tooltipSelectedText: document.getElementById('tooltip-selected-text'),
+                    tooltipDefineBtn: document.getElementById('tooltip-define-btn'),
+
+                    // Article Reader Modal
+                    modal: document.getElementById('article-modal'),
+                    modalCloseBtn: document.getElementById('modal-close-btn'),
+                    modalCiteBtn: document.getElementById('modal-cite-btn'),
+                    modalCompareBtn: document.getElementById('modal-compare-btn'),
+                    modalBookmarkBtn: document.getElementById('modal-bookmark-btn'),
+                    modalBookmarkIcon: document.getElementById('modal-bookmark-icon'),
+                    modalLangBadge: document.getElementById('modal-lang-badge'),
+                    modalTitle: document.getElementById('modal-title'),
+                    modalWordCount: document.getElementById('modal-word-count'),
+                    modalReadTime: document.getElementById('modal-read-time'),
+                    modalReadabilityScore: document.getElementById('modal-readability-score'),
+                    modalImageContainer: document.getElementById('modal-image-container'),
+                    modalImage: document.getElementById('modal-image'),
+                    modalExtract: document.getElementById('modal-extract'),
+                    modalTopicsChips: document.getElementById('modal-topics-chips'),
+                    modalNoteInput: document.getElementById('modal-note-input'),
+                    modalSaveNoteBtn: document.getElementById('modal-save-note-btn'),
+                    modalExternalLink: document.getElementById('modal-external-link'),
+                    modalTipBanner: document.getElementById('modal-tip-banner'),
+
+                    // Citations Modal
+                    citeModal: document.getElementById('cite-modal'),
+                    citeCloseBtn: document.getElementById('cite-close-btn'),
+                    citeApa: document.getElementById('cite-apa'),
+                    citeMla: document.getElementById('cite-mla'),
+                    citeChicago: document.getElementById('cite-chicago'),
+                    citeHarvard: document.getElementById('cite-harvard'),
+
+                    // Settings Workspace Modal
+                    settingsBtn: document.getElementById('settings-btn'),
+                    settingsModal: document.getElementById('settings-modal'),
+                    settingsCloseBtn: document.getElementById('settings-close-btn'),
+                    limitSelect: document.getElementById('limit-select'),
+                    toggleAutocomplete: document.getElementById('toggle-autocomplete'),
+                    togglePopover: document.getElementById('toggle-popover'),
+                    resetSavedBtn: document.getElementById('reset-saved-btn'),
+                    resetDefaultsBtn: document.getElementById('reset-defaults-btn'),
+
+                    // Counters & Containers
+                    savedCounter: document.getElementById('saved-counter'),
+                    compareCounter: document.getElementById('compare-counter'),
+                    toastContainer: document.getElementById('toast-container')
+                };
+            },
+
+            applyPreferences() {
+                this.el.html.setAttribute('data-theme', this.state.theme);
+                this.el.html.setAttribute('data-font', this.state.font);
+                this.el.html.setAttribute('data-size', this.state.size);
+
+                if (this.el.langSelect) this.el.langSelect.value = this.state.lang;
+                if (this.el.limitSelect) this.el.limitSelect.value = this.state.limit;
+                if (this.el.toggleAutocomplete) this.el.toggleAutocomplete.checked = this.state.enableAutocomplete;
+                if (this.el.togglePopover) this.el.togglePopover.checked = this.state.enablePopover;
+
+                this.highlightSettingButtons();
+            },
+
+            highlightSettingButtons() {
+                document.querySelectorAll('.theme-opt-btn').forEach(btn => {
+                    btn.classList.toggle('ring-2', btn.dataset.theme === this.state.theme);
+                    btn.classList.toggle('ring-amber-500', btn.dataset.theme === this.state.theme);
+                });
+
+                document.querySelectorAll('.font-opt-btn').forEach(btn => {
+                    btn.classList.toggle('ring-2', btn.dataset.font === this.state.font);
+                    btn.classList.toggle('ring-amber-500', btn.dataset.font === this.state.font);
+                });
+
+                document.querySelectorAll('.size-opt-btn').forEach(btn => {
+                    btn.classList.toggle('ring-2', btn.dataset.size === this.state.size);
+                    btn.classList.toggle('ring-amber-500', btn.dataset.size === this.state.size);
+                });
+            },
+
+            bindEvents() {
+                // Navigation Tabs
+                this.el.navBtns.forEach(btn => {
+                    btn.addEventListener('click', () => this.switchTab(btn.dataset.tab));
+                });
+
+                // Brand Logo Click
+                this.el.brandLogo.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.switchTab('wiki');
+                    this.el.searchInput.value = '';
+                    this.toggleClearButton();
+                    this.fetchSearch('Artificial Intelligence');
+                });
+
+                // Language Select
+                this.el.langSelect.addEventListener('change', (e) => {
+                    this.state.lang = e.target.value;
+                    localStorage.setItem('wikisearch_lang', this.state.lang);
+                    this.el.statLang.textContent = this.state.lang.toUpperCase();
+                    if (this.state.activeTab === 'wiki') {
+                        const q = this.el.searchInput.value.trim() || 'Artificial Intelligence';
+                        this.fetchSearch(q);
+                    }
+                    this.showToast(`Language set to ${this.state.lang.toUpperCase()}`);
+                });
+
+                // Wiki Search Input & Autocomplete
+                this.el.searchInput.addEventListener('input', (e) => {
+                    const q = e.target.value;
+                    this.toggleClearButton();
+                    clearTimeout(this.state.debounceTimer);
+                    if (this.state.enableAutocomplete && q.trim().length >= 2) {
+                        this.state.debounceTimer = setTimeout(() => {
+                            this.fetchSuggestions(q.trim());
+                        }, 220);
+                    } else {
+                        this.hideSuggestions();
+                    }
+                });
+
+                this.el.clearSearchBtn.addEventListener('click', () => {
+                    this.el.searchInput.value = '';
+                    this.toggleClearButton();
+                    this.hideSuggestions();
+                    this.el.searchInput.focus();
+                });
+
+                this.el.searchForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const q = this.el.searchInput.value.trim();
+                    if (q) {
+                        this.hideSuggestions();
+                        this.fetchSearch(q);
+                    }
+                });
+
+                // Dictionary Input Live Suggestions & Auto-lookup
+                this.el.dictInput.addEventListener('input', (e) => {
+                    const word = e.target.value.trim();
+                    clearTimeout(this.state.dictDebounceTimer);
+                    if (word.length >= 2) {
+                        this.state.dictDebounceTimer = setTimeout(() => {
+                            this.fetchDictDatamuseSuggestions(word);
+                            this.lookupDictionary(word, false);
+                        }, 300);
+                    } else {
+                        this.hideDictSuggestions();
+                    }
+                });
+
+                this.el.dictForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const word = this.el.dictInput.value.trim();
+                    if (word) {
+                        this.hideDictSuggestions();
+                        this.lookupDictionary(word, true);
+                    }
+                });
+
+                // Curated Topic Chips
+                this.el.curatedChips.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('chip-btn')) {
+                        const topic = e.target.textContent.trim();
+                        this.el.searchInput.value = topic;
+                        this.toggleClearButton();
+                        this.fetchSearch(topic);
+                    }
+                });
+
+                // Dictionary Sample Chips
+                document.querySelectorAll('.dict-chip-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const w = btn.textContent.trim();
+                        this.el.dictInput.value = w;
+                        this.lookupDictionary(w, true);
+                    });
+                });
+
+                // Random Article Button
+                this.el.randomBtn.addEventListener('click', () => this.fetchRandomArticle());
+
+                // Sort Order Selector
+                this.el.sortSelect.addEventListener('change', (e) => {
+                    this.state.sortBy = e.target.value;
+                    this.renderCurrentWikiList();
+                });
+
+                // Compare View Actions
+                this.el.clearCompareBtn.addEventListener('click', () => {
+                    this.state.comparisonList = [];
+                    this.updateCounters();
+                    this.renderCompareView();
+                    this.showToast('Comparison tray cleared');
+                });
+
+                // Saved View Actions
+                this.el.exportJsonBtn.addEventListener('click', () => this.exportBookmarksJSON());
+                this.el.exportMdBtn.addEventListener('click', () => this.exportBookmarksMarkdown());
+
+                // Settings Drawer Open/Close
+                this.el.settingsBtn.addEventListener('click', () => this.openModalElement(this.el.settingsModal));
+                this.el.settingsCloseBtn.addEventListener('click', () => this.closeModalElement(this.el.settingsModal));
+
+                // Settings Controls
+                document.querySelectorAll('.theme-opt-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        this.state.theme = btn.dataset.theme;
+                        localStorage.setItem('wikisearch_theme', this.state.theme);
+                        this.applyPreferences();
+                    });
+                });
+
+                document.querySelectorAll('.font-opt-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        this.state.font = btn.dataset.font;
+                        localStorage.setItem('wikisearch_font', this.state.font);
+                        this.applyPreferences();
+                    });
+                });
+
+                document.querySelectorAll('.size-opt-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        this.state.size = btn.dataset.size;
+                        localStorage.setItem('wikisearch_size', this.state.size);
+                        this.applyPreferences();
+                    });
+                });
+
+                this.el.limitSelect.addEventListener('change', (e) => {
+                    this.state.limit = parseInt(e.target.value, 10);
+                    localStorage.setItem('wikisearch_limit', this.state.limit);
+                    if (this.state.activeTab === 'wiki' && this.state.query) {
+                        this.fetchSearch(this.state.query);
+                    }
+                });
+
+                this.el.toggleAutocomplete.addEventListener('change', (e) => {
+                    this.state.enableAutocomplete = e.target.checked;
+                    localStorage.setItem('wikisearch_autocomplete', this.state.enableAutocomplete);
+                });
+
+                this.el.togglePopover.addEventListener('change', (e) => {
+                    this.state.enablePopover = e.target.checked;
+                    localStorage.setItem('wikisearch_popover', this.state.enablePopover);
+                    this.el.modalTipBanner.classList.toggle('hidden', !this.state.enablePopover);
+                });
+
+                this.el.resetSavedBtn.addEventListener('click', () => {
+                    this.state.saved = [];
+                    localStorage.removeItem('wikisearch_saved');
+                    this.updateCounters();
+                    if (this.state.activeTab === 'saved') this.renderSavedView();
+                    this.showToast('All bookmarks cleared');
+                });
+
+                this.el.resetDefaultsBtn.addEventListener('click', () => {
+                    this.state.theme = 'paper';
+                    this.state.font = 'editorial';
+                    this.state.size = 'md';
+                    this.state.limit = 12;
+                    this.state.enableAutocomplete = true;
+                    this.state.enablePopover = true;
+                    localStorage.clear();
+                    this.applyPreferences();
+                    this.showToast('Reset to default settings');
+                });
+
+                // Reader Modal Actions
+                this.el.modalCloseBtn.addEventListener('click', () => this.closeReaderModal());
+                this.el.modalBookmarkBtn.addEventListener('click', () => {
+                    if (this.state.activeModalArticle) {
+                        this.toggleBookmark(this.state.activeModalArticle);
+                        this.updateModalBookmarkIcon();
+                    }
+                });
+                this.el.modalCompareBtn.addEventListener('click', () => {
+                    if (this.state.activeModalArticle) {
+                        this.toggleCompare(this.state.activeModalArticle);
+                    }
+                });
+                this.el.modalCiteBtn.addEventListener('click', () => {
+                    if (this.state.activeModalArticle) {
+                        this.openCiteModal(this.state.activeModalArticle);
+                    }
+                });
+                this.el.modalSaveNoteBtn.addEventListener('click', () => {
+                    if (!this.state.activeModalArticle) return;
+                    const noteText = this.el.modalNoteInput.value.trim();
+                    this.saveArticleNote(this.state.activeModalArticle, noteText);
+                });
+
+                // In-Article Text Selection Handler
+                this.el.modalExtract.addEventListener('mouseup', () => this.handleTextSelection());
+                this.el.modalExtract.addEventListener('touchend', () => setTimeout(() => this.handleTextSelection(), 200));
+
+                this.el.tooltipDefineBtn.addEventListener('click', () => {
+                    if (this.state.selectedTextWord) {
+                        const word = this.state.selectedTextWord;
+                        this.hideSelectionTooltip();
+                        this.closeReaderModal();
+                        this.switchTab('dict');
+                        this.el.dictInput.value = word;
+                        this.lookupDictionary(word, true);
+                    }
+                });
+
+                // Citations Modal Close
+                this.el.citeCloseBtn.addEventListener('click', () => this.closeModalElement(this.el.citeModal));
+                document.querySelectorAll('.copy-cite-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const fmt = e.target.dataset.format;
+                        let text = '';
+                        if (fmt === 'apa') text = this.el.citeApa.textContent;
+                        if (fmt === 'mla') text = this.el.citeMla.textContent;
+                        if (fmt === 'chicago') text = this.el.citeChicago.textContent;
+                        if (fmt === 'harvard') text = this.el.citeHarvard.textContent;
+                        this.copyToClipboard(text);
+                    });
+                });
+
+                // Keyboard Shortcuts
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === '/' && document.activeElement !== this.el.searchInput && document.activeElement !== this.el.dictInput) {
+                        e.preventDefault();
+                        if (this.state.activeTab === 'dict') {
+                            this.el.dictInput.focus();
+                            this.el.dictInput.select();
+                        } else {
+                            this.switchTab('wiki');
+                            this.el.searchInput.focus();
+                            this.el.searchInput.select();
+                        }
+                    }
+                    if (e.key === 'Escape') {
+                        this.closeReaderModal();
+                        this.closeModalElement(this.el.citeModal);
+                        this.closeModalElement(this.el.settingsModal);
+                        this.hideSuggestions();
+                        this.hideDictSuggestions();
+                        this.hideSelectionTooltip();
+                    }
+                });
+
+                // Click Outside Handlers
+                document.addEventListener('click', (e) => {
+                    if (!this.el.searchForm.contains(e.target) && !this.el.suggestionsBox.contains(e.target)) {
+                        this.hideSuggestions();
+                    }
+                    if (!this.el.dictForm.contains(e.target) && !this.el.dictSuggestionsBox.contains(e.target)) {
+                        this.hideDictSuggestions();
+                    }
+                    if (!this.el.modalExtract.contains(e.target) && !this.el.selectionTooltip.contains(e.target)) {
+                        this.hideSelectionTooltip();
+                    }
+                });
+            },
+
+            switchTab(tabName) {
+                this.state.activeTab = tabName;
+                this.el.tabViews.forEach(v => v.classList.add('hidden'));
+
+                const targetView = document.getElementById(`view-${tabName}`);
+                if (targetView) targetView.classList.remove('hidden');
+
+                this.el.navBtns.forEach(btn => {
+                    const isCurrent = btn.dataset.tab === tabName;
+                    if (isCurrent) {
+                        btn.className = 'nav-tab-btn flex items-center gap-2 px-3.5 py-2 rounded-lg transition-all bg-accent text-white font-bold';
+                    } else {
+                        btn.className = 'nav-tab-btn flex items-center gap-2 px-3.5 py-2 rounded-lg text-muted hover:text-main transition-all';
+                    }
+                });
+
+                const modeLabels = {
+                    wiki: 'Wiki Search',
+                    dict: 'Dictionary & Lexicon',
+                    compare: 'Side-by-Side Compare',
+                    saved: 'Saved Bookmarks & Notes'
+                };
+                this.el.statMode.textContent = modeLabels[tabName] || 'Wiki Search';
+
+                if (tabName === 'compare') this.renderCompareView();
+                if (tabName === 'saved') this.renderSavedView();
+            },
+
+            toggleClearButton() {
+                this.el.clearSearchBtn.classList.toggle('hidden', this.el.searchInput.value.length === 0);
+            },
+
+            showSkeletons() {
+                this.state.isLoading = true;
+                this.el.cardsGrid.innerHTML = '';
+                for (let i = 0; i < (this.state.limit || 12); i++) {
+                    const clone = this.el.skeletonTemplate.content.cloneNode(true);
+                    this.el.cardsGrid.appendChild(clone);
+                }
+            },
+
+            /**
+             * Wikipedia API Query Handler
+             */
+            async fetchSearch(query) {
+                this.state.query = query;
+                this.showSkeletons();
+
+                this.el.viewTitle.textContent = `Search Results for "${query}"`;
+                this.el.viewSubtitle.textContent = `Language: ${this.state.lang.toUpperCase()}`;
+                this.el.sortContainer.classList.remove('hidden');
+
+                const url = `https://${this.state.lang}.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrlimit=${this.state.limit * 2}&prop=pageimages|extracts|info&pithumbsize=600&exintro=1&explaintext=1&exsentences=6&inprop=url&format=json&origin=*`;
+
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error('API Error');
+                    const data = await response.json();
+
+                    if (data.query && data.query.pages) {
+                        const pagesArr = Object.values(data.query.pages);
+                        const formatted = pagesArr.map(p => this.formatPageData(p)).slice(0, this.state.limit);
+                        this.state.results = formatted;
+
+                        if (formatted.length === 0) {
+                            this.renderEmptyState(`No Wikipedia articles found matching "${query}".`);
+                        } else {
+                            this.renderCurrentWikiList();
+                        }
+                    } else {
+                        this.renderEmptyState(`No Wikipedia articles found matching "${query}".`);
+                    }
+                } catch (err) {
+                    console.error('Fetch error:', err);
+                    this.renderEmptyState('Failed to connect to Wikipedia API. Please check your network connection.');
+                } finally {
+                    this.state.isLoading = false;
+                }
+            },
+
+            async fetchSuggestions(query) {
+                const url = `https://${this.state.lang}.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(query)}&limit=5&namespace=0&format=json&origin=*`;
+                try {
+                    const res = await fetch(url);
+                    const data = await res.json();
+                    const suggestions = data[1] || [];
+                    this.renderSuggestions(suggestions);
+                } catch (e) {
+                    this.hideSuggestions();
+                }
+            },
+
+            renderSuggestions(suggestions) {
+                if (suggestions.length === 0) {
+                    this.hideSuggestions();
+                    return;
+                }
+                this.el.suggestionsList.innerHTML = suggestions.map(s => `
+                    <li class="px-4 py-2.5 hover:bg-subtle cursor-pointer flex items-center justify-between transition-colors">
+                        <span class="font-medium text-sm text-main">${this.escapeHTML(s)}</span>
+                        <svg class="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16l-4-4m0 0l4-4m-4 4h18"/></svg>
+                    </li>
+                `).join('');
+
+                Array.from(this.el.suggestionsList.children).forEach((li, idx) => {
+                    li.addEventListener('click', () => {
+                        const selected = suggestions[idx];
+                        this.el.searchInput.value = selected;
+                        this.toggleClearButton();
+                        this.hideSuggestions();
+                        this.fetchSearch(selected);
+                    });
+                });
+
+                this.el.suggestionsBox.classList.remove('hidden');
+            },
+
+            hideSuggestions() {
+                this.el.suggestionsBox.classList.add('hidden');
+            },
+
+            async fetchRandomArticle() {
+                this.showSkeletons();
+                this.el.viewTitle.textContent = `Random Discovery`;
+                this.el.viewSubtitle.textContent = `Random Wikipedia entry`;
+
+                const url = `https://${this.state.lang}.wikipedia.org/w/api.php?action=query&generator=random&grnnamespace=0&grnlimit=1&prop=pageimages|extracts|info&pithumbsize=600&exintro=1&explaintext=1&inprop=url&format=json&origin=*`;
+
+                try {
+                    const res = await fetch(url);
+                    const data = await res.json();
+                    if (data.query && data.query.pages) {
+                        const page = Object.values(data.query.pages)[0];
+                        const formatted = this.formatPageData(page);
+                        this.state.results = [formatted];
+                        this.renderCurrentWikiList();
+                        this.openReaderModal(formatted);
+                    } else {
+                        this.renderEmptyState('Could not retrieve a random topic. Please try again.');
+                    }
+                } catch (err) {
+                    this.renderEmptyState('Failed to fetch a random article.');
+                } finally {
+                    this.state.isLoading = false;
+                }
+            },
+
+            formatPageData(p) {
+                const extract = p.extract || 'No extract text summary provided for this entry.';
+                const words = extract.trim() ? extract.trim().split(/\s+/).length : 0;
+                const readTime = Math.max(1, Math.ceil(words / 180));
+
+                const sentences = (extract.match(/[.!?]+/g) || []).length || 1;
+                const syllables = this.estimateSyllables(extract);
+                let fleschScore = Math.round(206.835 - (1.015 * (words / sentences)) - (84.6 * (syllables / Math.max(1, words))));
+                fleschScore = Math.min(100, Math.max(0, fleschScore));
+
+                const keywords = this.extractKeywords(extract);
+
+                return {
+                    pageid: p.pageid,
+                    title: p.title,
+                    extract: extract,
+                    thumbnail: p.thumbnail ? p.thumbnail.source : null,
+                    fullurl: p.fullurl || `https://${this.state.lang}.wikipedia.org/?curid=${p.pageid}`,
+                    lang: this.state.lang,
+                    wordCount: words,
+                    readTime: readTime,
+                    fleschScore: fleschScore,
+                    keywords: keywords
+                };
+            },
+
+            estimateSyllables(text) {
+                const words = text.toLowerCase().replace(/[^a-z]/g, ' ').split(/\s+/);
+                let count = 0;
+                words.forEach(w => {
+                    if (!w) return;
+                    if (w.length <= 3) { count += 1; return; }
+                    w = w.replace(/(?:ended|ed|ely|ing)$/, '');
+                    const matches = w.match(/[aeiouy]{1,2}/g);
+                    count += matches ? matches.length : 1;
+                });
+                return count;
+            },
+
+            extractKeywords(text) {
+                const stopWords = new Set(['the','and','is','in','to','a','of','for','with','on','at','by','from','an','as','that','this','it','are','was','be','or','its','has','have','had','not','which','also','other','more','their','they','he','she','been','were','into','than','about','some','used','such']);
+                const clean = text.replace(/[^a-zA-Z0-9\s]/g, '');
+                const words = clean.split(/\s+/);
+                const freq = {};
+
+                words.forEach(w => {
+                    const lower = w.toLowerCase();
+                    if (lower.length > 3 && !stopWords.has(lower)) {
+                        freq[w] = (freq[w] || 0) + 1;
+                    }
+                });
+
+                return Object.keys(freq)
+                    .sort((a, b) => freq[b] - freq[a])
+                    .slice(0, 6);
+            },
+
+            renderCurrentWikiList() {
+                let list = [...this.state.results];
+
+                if (this.state.sortBy === 'length') {
+                    list.sort((a, b) => b.wordCount - a.wordCount);
+                } else if (this.state.sortBy === 'title') {
+                    list.sort((a, b) => a.title.localeCompare(b.title));
+                }
+
+                this.renderCards(list);
+            },
+
+            renderCards(articles) {
+                this.el.cardsGrid.innerHTML = '';
+
+                if (!articles || articles.length === 0) {
+                    this.renderEmptyState('No articles to display.');
+                    return;
+                }
+
+                articles.forEach(art => {
+                    const isSaved = this.isSaved(art.pageid, art.lang);
+                    const inCompare = this.isCompared(art.pageid, art.lang);
+
+                    const card = document.createElement('article');
+                    card.className = 'group bg-card border border-custom rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between';
+
+                    const imgHTML = art.thumbnail ? `
+                        <div class="h-44 w-full overflow-hidden bg-subtle relative border-b border-custom">
+                            <img src="${art.thumbnail}" alt="${this.escapeHTML(art.title)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" onerror="this.parentNode.innerHTML='<div class=\\'w-full h-full flex items-center justify-center font-mono text-xs text-muted\\'>WikiSearch</div>';">
+                        </div>
+                    ` : `
+                        <div class="h-20 w-full bg-subtle border-b border-custom flex items-center justify-center p-3">
+                            <span class="font-mono text-xs text-muted uppercase tracking-wider">Wikipedia Entry</span>
+                        </div>
+                    `;
+
+                    card.innerHTML = `
+                        <div>
+                            ${imgHTML}
+                            <div class="p-5">
+                                <div class="flex items-center justify-between gap-2 mb-2">
+                                    <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-accent px-2 py-0.5 rounded bg-accent-light">
+                                        ${art.lang.toUpperCase()}
+                                    </span>
+                                    <div class="flex items-center gap-2 text-xs font-mono text-muted">
+                                        <span>Flesch: ${art.fleschScore}</span>
+                                        <span>•</span>
+                                        <span>${art.readTime}m read</span>
+                                    </div>
+                                </div>
+                                <h3 class="text-xl font-bold text-main font-editorial group-hover:text-accent transition-colors mb-2 leading-snug line-clamp-2 cursor-pointer card-title">
+                                    ${this.escapeHTML(art.title)}
+                                </h3>
+                                <p class="text-xs sm:text-sm text-muted line-clamp-3 leading-relaxed mb-3">
+                                    ${this.escapeHTML(art.extract)}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="px-5 py-3 border-t border-custom bg-subtle flex items-center justify-between gap-2">
+                            <button class="read-btn text-xs font-bold uppercase tracking-wider text-main hover:text-accent flex items-center gap-1 transition-colors">
+                                <span>Read Article</span>
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                            </button>
+
+                            <div class="flex items-center gap-1">
+                                <button class="card-dict-btn p-1.5 text-muted hover:text-accent rounded transition-colors" title="Quick Define Word in Dictionary">
+                                    📖
+                                </button>
+                                <button class="card-compare-btn p-1.5 text-muted hover:text-accent rounded transition-colors" title="${inCompare ? 'Remove Compare' : 'Compare Side-by-Side'}">
+                                    <svg class="w-4 h-4 ${inCompare ? 'text-accent fill-accent/20' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 0-2-2h-2a2 2 0 0-2 2"/></svg>
+                                </button>
+                                <button class="card-bookmark-btn p-1.5 text-muted hover:text-amber-500 rounded transition-colors" title="${isSaved ? 'Remove Bookmark' : 'Bookmark & Note'}">
+                                    <svg class="w-4 h-4 ${isSaved ? 'fill-amber-600 text-amber-600' : 'fill-none'}" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+
+                    card.querySelector('.card-title').addEventListener('click', () => this.openReaderModal(art));
+                    card.querySelector('.read-btn').addEventListener('click', () => this.openReaderModal(art));
+
+                    card.querySelector('.card-dict-btn').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.switchTab('dict');
+                        this.el.dictInput.value = art.title;
+                        this.lookupDictionary(art.title, true);
+                    });
+
+                    card.querySelector('.card-compare-btn').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.toggleCompare(art);
+                        this.renderCurrentWikiList();
+                    });
+
+                    card.querySelector('.card-bookmark-btn').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.toggleBookmark(art);
+                        this.renderCurrentWikiList();
+                    });
+
+                    this.el.cardsGrid.appendChild(card);
+                });
+            },
+
+            renderEmptyState(message) {
+                this.el.cardsGrid.innerHTML = `
+                    <div class="col-span-full py-16 px-4 text-center flex flex-col items-center justify-center">
+                        <div class="w-12 h-12 mb-4 rounded-full bg-subtle border border-custom flex items-center justify-center text-muted font-mono font-bold">
+                            !
+                        </div>
+                        <h3 class="text-xl font-bold text-main font-editorial mb-2">No Articles Found</h3>
+                        <p class="text-sm text-muted max-w-md mb-6">${this.escapeHTML(message)}</p>
+                    </div>
+                `;
+            },
+
+
+            /**
+             * ================= DICTIONARY & LEXICON ENGINE =================
+             */
+            async fetchDictDatamuseSuggestions(word) {
+                const url = `https://api.datamuse.com/sug?s=${encodeURIComponent(word)}`;
+                try {
+                    const res = await fetch(url);
+                    const data = await res.json();
+                    if (Array.isArray(data) && data.length > 0) {
+                        const words = data.map(item => item.word);
+                        this.renderDictSuggestions(words);
+                    } else {
+                        this.hideDictSuggestions();
+                    }
+                } catch (e) {
+                    this.hideDictSuggestions();
+                }
+            },
+
+            renderDictSuggestions(words) {
+                if (words.length === 0) {
+                    this.hideDictSuggestions();
+                    return;
+                }
+                this.el.dictSuggestionsList.innerHTML = words.slice(0, 5).map(w => `
+                    <li class="px-4 py-2.5 hover:bg-subtle cursor-pointer flex items-center justify-between transition-colors">
+                        <span class="font-medium text-sm text-main">📖 ${this.escapeHTML(w)}</span>
+                        <span class="text-xs text-muted font-mono">Lookup Definition</span>
+                    </li>
+                `).join('');
+
+                Array.from(this.el.dictSuggestionsList.children).forEach((li, idx) => {
+                    li.addEventListener('click', () => {
+                        const selected = words[idx];
+                        this.el.dictInput.value = selected;
+                        this.hideDictSuggestions();
+                        this.lookupDictionary(selected, true);
+                    });
+                });
+
+                this.el.dictSuggestionsBox.classList.remove('hidden');
+            },
+
+            hideDictSuggestions() {
+                this.el.dictSuggestionsBox.classList.add('hidden');
+            },
+
+            async lookupDictionary(word, focusResult = true) {
+                if (!word) return;
+
+                if (focusResult) {
+                    this.el.dictResultsContainer.innerHTML = `
+                        <div class="p-8 text-center bg-card border border-custom rounded-xl animate-pulse font-mono text-sm text-muted">
+                            Fetching lexical entry for "${this.escapeHTML(word)}"...
+                        </div>
+                    `;
+                }
+
+                const url = `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`;
+
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        this.handleDictNotFound(word);
+                        return;
+                    }
+                    const data = await response.json();
+                    if (Array.isArray(data) && data.length > 0) {
+                        this.renderDictionaryResults(data);
+                    } else {
+                        this.handleDictNotFound(word);
+                    }
+                } catch (err) {
+                    this.handleDictNotFound(word);
+                }
+            },
+
+            async handleDictNotFound(word) {
+                try {
+                    const res = await fetch(`https://api.datamuse.com/sug?s=${encodeURIComponent(word)}`);
+                    const data = await res.json();
+                    const suggestions = (data || []).map(d => d.word);
+
+                    this.el.dictResultsContainer.innerHTML = `
+                        <div class="p-8 bg-card border border-custom rounded-xl text-center space-y-4">
+                            <div class="text-3xl">📖</div>
+                            <h3 class="text-2xl font-bold font-editorial text-main">No Definition Found for "${this.escapeHTML(word)}"</h3>
+                            <p class="text-sm text-muted max-w-md mx-auto">The word might be specialized, a proper noun, or misspelled.</p>
+
+                            ${suggestions.length > 0 ? `
+                                <div class="pt-4 border-t border-custom">
+                                    <span class="text-xs font-mono uppercase tracking-wider text-muted font-bold block mb-3">Did you mean?</span>
+                                    <div class="flex flex-wrap items-center justify-center gap-2">
+                                        ${suggestions.slice(0, 6).map(s => `
+                                            <button class="dict-sug-btn px-3 py-1 bg-subtle border border-custom rounded-full text-xs font-semibold text-main hover:border-accent transition-colors">
+                                                ${this.escapeHTML(s)}
+                                            </button>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+
+                            <div class="pt-4">
+                                <button id="dict-fallback-wiki" class="px-4 py-2 rounded-lg bg-accent text-white text-xs font-bold uppercase tracking-wider hover:opacity-90 transition-opacity">
+                                    🔍 Search "${this.escapeHTML(word)}" on Wikipedia
+                                </button>
+                            </div>
+                        </div>
+                    `;
+
+                    document.querySelectorAll('.dict-sug-btn').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            const sug = btn.textContent.trim();
+                            this.el.dictInput.value = sug;
+                            this.lookupDictionary(sug, true);
+                        });
+                    });
+
+                    const fallbackBtn = document.getElementById('dict-fallback-wiki');
+                    if (fallbackBtn) {
+                        fallbackBtn.addEventListener('click', () => {
+                            this.switchTab('wiki');
+                            this.el.searchInput.value = word;
+                            this.toggleClearButton();
+                            this.fetchSearch(word);
+                        });
+                    }
+
+                } catch (e) {
+                    this.el.dictResultsContainer.innerHTML = `<div class="p-6 bg-card border border-custom rounded-xl text-center text-muted font-mono text-sm">Definition unavailable.</div>`;
+                }
+            },
+
+            renderDictionaryResults(entries) {
+                this.el.dictResultsContainer.innerHTML = '';
+
+                entries.forEach((entry) => {
+                    const card = document.createElement('div');
+                    card.className = 'bg-card border border-custom rounded-2xl p-6 sm:p-8 shadow-sm space-y-6';
+
+                    let phoneticText = entry.phonetic || (entry.phonetics && entry.phonetics.find(p => p.text)?.text) || '';
+
+                    card.innerHTML = `
+                        <!-- Word Header -->
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-custom gap-4">
+                            <div>
+                                <div class="flex items-center gap-3">
+                                    <h2 class="text-4xl font-bold font-editorial text-main tracking-tight">${this.escapeHTML(entry.word)}</h2>
+                                    ${phoneticText ? `<span class="text-sm font-mono text-accent font-semibold px-2.5 py-1 rounded bg-accent-light border border-accent/20">${this.escapeHTML(phoneticText)}</span>` : ''}
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button class="dict-wiki-btn px-3 py-1.5 rounded-lg bg-subtle border border-custom text-xs font-bold text-main hover:border-accent transition-colors flex items-center gap-1">
+                                    🔍 Search Wiki
+                                </button>
+                                <button class="dict-save-word-btn px-3 py-1.5 rounded-lg bg-subtle border border-custom text-xs font-bold text-amber-600 hover:border-amber-500 transition-colors flex items-center gap-1">
+                                    ⭐ Save Word
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Meanings by Part of Speech -->
+                        <div class="space-y-6 divide-y divide-custom">
+                            ${(entry.meanings || []).map(m => `
+                                <div class="pt-4 first:pt-0 space-y-3">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs font-mono uppercase tracking-widest px-2.5 py-0.5 rounded bg-subtle font-bold text-muted border border-custom">
+                                            ${this.escapeHTML(m.partOfSpeech)}
+                                        </span>
+                                    </div>
+
+                                    <ol class="list-decimal list-inside space-y-2 text-sm text-main leading-relaxed">
+                                        ${(m.definitions || []).map(d => `
+                                            <li class="pl-1">
+                                                <span class="font-medium">${this.escapeHTML(d.definition)}</span>
+                                                ${d.example ? `<p class="text-xs text-muted italic ml-5 mt-0.5">"${this.escapeHTML(d.example)}"</p>` : ''}
+                                            </li>
+                                        `).join('')}
+                                    </ol>
+
+                                    <!-- Synonyms -->
+                                    ${(m.synonyms && m.synonyms.length > 0) ? `
+                                        <div class="pt-2 flex flex-wrap items-center gap-1.5 text-xs">
+                                            <span class="text-muted font-mono uppercase font-bold text-[10px] mr-1">Synonyms:</span>
+                                            ${m.synonyms.slice(0, 8).map(s => `
+                                                <button class="dict-syn-btn px-2.5 py-0.5 rounded-full bg-subtle border border-custom hover:border-accent text-main font-mono text-[11px] transition-colors">
+                                                    ${this.escapeHTML(s)}
+                                                </button>
+                                            `).join('')}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+
+                    // Wiki Search Trigger
+                    card.querySelector('.dict-wiki-btn').addEventListener('click', () => {
+                        this.switchTab('wiki');
+                        this.el.searchInput.value = entry.word;
+                        this.toggleClearButton();
+                        this.fetchSearch(entry.word);
+                    });
+
+                    // Save Vocabulary Word Trigger
+                    card.querySelector('.dict-save-word-btn').addEventListener('click', () => {
+                        const wordObj = {
+                            pageid: 'word_' + Date.now(),
+                            title: `Word: ${entry.word}`,
+                            extract: (entry.meanings[0]?.definitions[0]?.definition) || 'Vocabulary Word',
+                            fullurl: `https://en.wiktionary.org/wiki/${entry.word}`,
+                            lang: 'en',
+                            wordCount: 1,
+                            readTime: 1,
+                            fleschScore: 100,
+                            isVocabulary: true
+                        };
+                        this.toggleBookmark(wordObj);
+                    });
+
+                    // Synonyms Click Handlers
+                    card.querySelectorAll('.dict-syn-btn').forEach(synBtn => {
+                        synBtn.addEventListener('click', () => {
+                            const syn = synBtn.textContent.trim();
+                            this.el.dictInput.value = syn;
+                            this.lookupDictionary(syn, true);
+                        });
+                    });
+
+                    this.el.dictResultsContainer.appendChild(card);
+                });
+            },
+
+            /**
+             * Contextual Selection Tooltip inside Reader Modal
+             */
+            handleTextSelection() {
+                if (!this.state.enablePopover) return;
+
+                const selection = window.getSelection();
+                const text = selection.toString().trim();
+
+                if (text && text.length >= 2 && text.length <= 35 && !text.includes('\n')) {
+                    const range = selection.getRangeAt(0);
+                    const rect = range.getBoundingClientRect();
+
+                    this.state.selectedTextWord = text;
+                    this.el.tooltipSelectedText.textContent = text;
+
+                    this.el.selectionTooltip.style.left = `${rect.left + (rect.width / 2)}px`;
+                    this.el.selectionTooltip.style.top = `${rect.top + window.scrollY}px`;
+                    this.el.selectionTooltip.classList.remove('hidden');
+                } else {
+                    this.hideSelectionTooltip();
+                }
+            },
+
+            hideSelectionTooltip() {
+                this.el.selectionTooltip.classList.add('hidden');
+                this.state.selectedTextWord = '';
+            },
+
+
+            /**
+             * ================= SIDE-BY-SIDE COMPARISON VIEW =================
+             */
+            isCompared(pageid, lang) {
+                return this.state.comparisonList.some(a => a.pageid === pageid && a.lang === lang);
+            },
+
+            toggleCompare(article) {
+                const idx = this.state.comparisonList.findIndex(a => a.pageid === article.pageid && a.lang === article.lang);
+                if (idx > -1) {
+                    this.state.comparisonList.splice(idx, 1);
+                    this.showToast('Removed from Comparison');
+                } else {
+                    if (this.state.comparisonList.length >= 2) {
+                        this.state.comparisonList.shift();
+                    }
+                    this.state.comparisonList.push(article);
+                    this.showToast('Added to Comparison (Max 2)');
+                }
+                this.updateCounters();
+            },
+
+            renderCompareView() {
+                this.el.compareTabGrid.innerHTML = '';
+
+                if (this.state.comparisonList.length === 0) {
+                    this.el.compareTabGrid.innerHTML = `
+                        <div class="col-span-full py-16 px-4 text-center bg-card border border-custom rounded-xl flex flex-col items-center justify-center">
+                            <div class="text-4xl mb-3">⚖️</div>
+                            <h3 class="text-xl font-bold font-editorial text-main mb-2">No Articles Selected for Comparison</h3>
+                            <p class="text-sm text-muted max-w-md mb-4">Click the ⚖️ Compare icon on any 2 Wikipedia cards to view side-by-side metrics and extracts.</p>
+                            <button id="go-search-compare" class="px-4 py-2 bg-accent text-white text-xs font-bold uppercase tracking-wider rounded-lg">
+                                Back to Wiki Search
+                            </button>
+                        </div>
+                    `;
+                    const btn = document.getElementById('go-search-compare');
+                    if (btn) btn.addEventListener('click', () => this.switchTab('wiki'));
+                    return;
+                }
+
+                this.state.comparisonList.forEach((art, idx) => {
+                    const col = document.createElement('div');
+                    col.className = 'p-6 bg-card border border-custom rounded-2xl shadow-sm space-y-4 flex flex-col justify-between';
+                    col.innerHTML = `
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between border-b border-custom pb-2">
+                                <span class="text-xs font-mono font-bold text-accent">Article #${idx + 1} (${art.lang.toUpperCase()})</span>
+                                <button class="remove-comp-btn text-xs font-mono text-red-500 hover:underline" data-idx="${idx}">Remove</button>
+                            </div>
+                            <h3 class="text-2xl font-bold text-main font-editorial leading-snug">${this.escapeHTML(art.title)}</h3>
+
+                            <div class="grid grid-cols-2 gap-2 text-xs font-mono p-3 bg-subtle border border-custom rounded-lg">
+                                <div><span class="text-muted">Words:</span> ${art.wordCount}</div>
+                                <div><span class="text-muted">Read Time:</span> ${art.readTime} min</div>
+                                <div><span class="text-muted">Flesch Score:</span> ${art.fleschScore}</div>
+                                <div><span class="text-muted">Lang:</span> ${art.lang.toUpperCase()}</div>
+                            </div>
+
+                            ${art.thumbnail ? `<img src="${art.thumbnail}" class="w-full h-44 object-cover rounded-lg border border-custom">` : ''}
+
+                            <div class="text-xs sm:text-sm text-main leading-relaxed max-h-60 overflow-y-auto space-y-2">
+                                <p>${this.escapeHTML(art.extract)}</p>
+                            </div>
+                        </div>
+
+                        <div class="pt-3 border-t border-custom flex justify-end">
+                            <a href="${art.fullurl}" target="_blank" class="text-xs font-bold text-accent hover:underline flex items-center gap-1">
+                                Open Wikipedia Source ↗
+                            </a>
+                        </div>
+                    `;
+
+                    col.querySelector('.remove-comp-btn').addEventListener('click', (e) => {
+                        const i = parseInt(e.target.dataset.idx, 10);
+                        this.state.comparisonList.splice(i, 1);
+                        this.updateCounters();
+                        this.renderCompareView();
+                    });
+
+                    this.el.compareTabGrid.appendChild(col);
+                });
+            },
+
+
+            /**
+             * ================= SAVED BOOKMARKS & NOTES ENGINE =================
+             */
+            isSaved(pageid, lang) {
+                return this.state.saved.some(item => item.article.pageid === pageid && item.article.lang === lang);
+            },
+
+            getSavedItem(pageid, lang) {
+                return this.state.saved.find(item => item.article.pageid === pageid && item.article.lang === lang);
+            },
+
+            toggleBookmark(article) {
+                const idx = this.state.saved.findIndex(item => item.article.pageid === article.pageid && item.article.lang === article.lang);
+                if (idx > -1) {
+                    this.state.saved.splice(idx, 1);
+                    this.showToast('Removed from Saved');
+                } else {
+                    this.state.saved.unshift({
+                        article: article,
+                        note: '',
+                        timestamp: new Date().toISOString()
+                    });
+                    this.showToast('Item Saved');
+                }
+                localStorage.setItem('wikisearch_saved', JSON.stringify(this.state.saved));
+                this.updateCounters();
+                if (this.state.activeTab === 'saved') this.renderSavedView();
+            },
+
+            saveArticleNote(article, noteText) {
+                let item = this.getSavedItem(article.pageid, article.lang);
+                if (!item) {
+                    item = {
+                        article: article,
+                        note: noteText,
+                        timestamp: new Date().toISOString()
+                    };
+                    this.state.saved.unshift(item);
+                } else {
+                    item.note = noteText;
+                }
+                localStorage.setItem('wikisearch_saved', JSON.stringify(this.state.saved));
+                this.updateCounters();
+                this.showToast('Note Saved');
+                if (this.state.activeTab === 'saved') this.renderSavedView();
+            },
+
+            exportBookmarksJSON() {
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.state.saved, null, 2));
+                const a = document.createElement('a');
+                a.setAttribute("href", dataStr);
+                a.setAttribute("download", `WikiSearch_Research_${new Date().toISOString().slice(0,10)}.json`);
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                this.showToast('Exported JSON File');
+            },
+
+            exportBookmarksMarkdown() {
+                let md = `# WikiSearch — Research Bookmarks & Notes\nExported: ${new Date().toLocaleString()}\n\n`;
+                this.state.saved.forEach((item, index) => {
+                    md += `## ${index + 1}. ${item.article.title}\n`;
+                    md += `- **Language**: ${item.article.lang ? item.article.lang.toUpperCase() : 'EN'}\n`;
+                    md += `- **Readability Score**: ${item.article.fleschScore}\n`;
+                    md += `- **Source URL**: ${item.article.fullurl}\n`;
+                    if (item.note) {
+                        md += `- **Personal Research Note**: ${item.note}\n`;
+                    }
+                    md += `\n> ${item.article.extract}\n\n---\n\n`;
+                });
+
+                const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `WikiSearch_Research_${new Date().toISOString().slice(0,10)}.md`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+                this.showToast('Exported Markdown File');
+            },
+
+            renderSavedView() {
+                this.el.savedListContainer.innerHTML = '';
+
+                if (this.state.saved.length === 0) {
+                    this.el.savedListContainer.innerHTML = `
+                        <div class="col-span-full py-16 px-4 text-center bg-card border border-custom rounded-xl flex flex-col items-center justify-center">
+                            <div class="text-4xl mb-3">🔖</div>
+                            <h3 class="text-xl font-bold font-editorial text-main mb-2">No Saved Bookmarks or Words</h3>
+                            <p class="text-sm text-muted max-w-md mb-4">Click the bookmark icon on any article card or word entry to save it to your local notebook.</p>
+                            <button id="go-search-saved" class="px-4 py-2 bg-accent text-white text-xs font-bold uppercase tracking-wider rounded-lg">
+                                Back to Wiki Search
+                            </button>
+                        </div>
+                    `;
+                    const btn = document.getElementById('go-search-saved');
+                    if (btn) btn.addEventListener('click', () => this.switchTab('wiki'));
+                    return;
+                }
+
+                this.state.saved.forEach(item => {
+                    const art = item.article;
+                    const card = document.createElement('div');
+                    card.className = 'bg-card border border-custom rounded-xl p-6 shadow-sm flex flex-col justify-between space-y-4';
+                    card.innerHTML = `
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-accent px-2 py-0.5 rounded bg-accent-light">
+                                    ${art.lang ? art.lang.toUpperCase() : 'EN'}
+                                </span>
+                                <button class="remove-saved-btn text-xs font-mono text-red-500 hover:underline">Remove</button>
+                            </div>
+                            <h3 class="text-xl font-bold font-editorial text-main">${this.escapeHTML(art.title)}</h3>
+                            <p class="text-xs text-muted line-clamp-3 leading-relaxed">${this.escapeHTML(art.extract)}</p>
+
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-mono uppercase font-bold text-muted">Personal Research Note:</label>
+                                <textarea class="saved-note-input w-full p-2 text-xs bg-subtle border border-custom rounded text-main" rows="2" placeholder="Add note...">${this.escapeHTML(item.note || '')}</textarea>
+                            </div>
+                        </div>
+
+                        <div class="pt-3 border-t border-custom flex items-center justify-between text-xs">
+                            <button class="save-note-btn font-mono font-bold text-accent hover:underline">Save Note</button>
+                            <a href="${art.fullurl}" target="_blank" class="text-muted hover:text-main">Open Source ↗</a>
+                        </div>
+                    `;
+
+                    card.querySelector('.remove-saved-btn').addEventListener('click', () => {
+                        this.toggleBookmark(art);
+                    });
+
+                    card.querySelector('.save-note-btn').addEventListener('click', () => {
+                        const newNote = card.querySelector('.saved-note-input').value.trim();
+                        this.saveArticleNote(art, newNote);
+                    });
+
+                    this.el.savedListContainer.appendChild(card);
+                });
+            },
+
+            /**
+             * ================= READER MODAL OPERATIONS =================
+             */
+            openReaderModal(article) {
+                this.state.activeModalArticle = article;
+                this.el.modalLangBadge.textContent = article.lang.toUpperCase();
+                this.el.modalTitle.textContent = article.title;
+                this.el.modalWordCount.textContent = `${article.wordCount} words`;
+                this.el.modalReadTime.textContent = `${article.readTime} min read`;
+                this.el.modalReadabilityScore.textContent = `Flesch Score: ${article.fleschScore}/100`;
+                this.el.modalExternalLink.href = article.fullurl;
+
+                if (article.thumbnail) {
+                    this.el.modalImage.src = article.thumbnail;
+                    this.el.modalImageContainer.classList.remove('hidden');
+                } else {
+                    this.el.modalImageContainer.classList.add('hidden');
+                }
+
+                const paragraphs = article.extract.split('\n').filter(p => p.trim().length > 0);
+                if (paragraphs.length > 0) {
+                    this.el.modalExtract.innerHTML = paragraphs.map(p => `<p class="leading-relaxed">${this.escapeHTML(p)}</p>`).join('');
+                } else {
+                    this.el.modalExtract.innerHTML = `<p class="italic text-muted">No extract text summary provided.</p>`;
+                }
+
+                const savedItem = this.getSavedItem(article.pageid, article.lang);
+                this.el.modalNoteInput.value = savedItem && savedItem.note ? savedItem.note : '';
+
+                // Rabbit Hole Chips
+                this.el.modalTopicsChips.innerHTML = '';
+                if (article.keywords && article.keywords.length > 0) {
+                    article.keywords.forEach(kw => {
+                        const chip = document.createElement('button');
+                        chip.className = 'px-3 py-1 rounded-full bg-subtle border border-custom text-xs font-medium text-main hover:border-accent transition-colors';
+                        chip.textContent = kw;
+                        chip.addEventListener('click', () => {
+                            this.closeReaderModal();
+                            this.switchTab('wiki');
+                            this.el.searchInput.value = kw;
+                            this.toggleClearButton();
+                            this.fetchSearch(kw);
+                        });
+                        this.el.modalTopicsChips.appendChild(chip);
+                    });
+                } else {
+                    this.el.modalTopicsChips.innerHTML = `<span class="text-xs text-muted font-mono">No topic tags identified.</span>`;
+                }
+
+                this.updateModalBookmarkIcon();
+                this.openModalElement(this.el.modal);
+            },
+
+            closeReaderModal() {
+                this.closeModalElement(this.el.modal);
+                this.state.activeModalArticle = null;
+                this.hideSelectionTooltip();
+            },
+
+            updateModalBookmarkIcon() {
+                if (!this.state.activeModalArticle) return;
+                const isSaved = this.isSaved(this.state.activeModalArticle.pageid, this.state.activeModalArticle.lang);
+                if (isSaved) {
+                    this.el.modalBookmarkIcon.classList.add('fill-amber-600', 'text-amber-600');
+                    this.el.modalBookmarkIcon.classList.remove('fill-none');
+                } else {
+                    this.el.modalBookmarkIcon.classList.remove('fill-amber-600', 'text-amber-600');
+                    this.el.modalBookmarkIcon.classList.add('fill-none');
+                }
+            },
+
+            openCiteModal(article) {
+                const today = new Date();
+                const day = today.getDate();
+                const monthsShort = ["Jan.", "Feb.", "Mar.", "Apr.", "May", "Jun.", "Jul.", "Aug.", "Sep.", "Oct.", "Nov.", "Dec."];
+                const monthsFull = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+                const year = today.getFullYear();
+
+                const title = article.title;
+                const url = article.fullurl;
+
+                this.el.citeApa.textContent = `Wikipedia contributors. (${year}, ${monthsFull[today.getMonth()]} ${day}). ${title}. In Wikipedia, The Free Encyclopedia. Retrieved ${today.getHours()}:${String(today.getMinutes()).padStart(2, '0')}, ${monthsFull[today.getMonth()]} ${day}, ${year}, from ${url}`;
+                this.el.citeMla.textContent = `" ${title}." Wikipedia: The Free Encyclopedia, Wikimedia Foundation, ${day} ${monthsShort[today.getMonth()]} ${year}, ${url}.`;
+                this.el.citeChicago.textContent = `Wikipedia contributors, "${title}," Wikipedia, The Free Encyclopedia, ${url} (accessed ${monthsFull[today.getMonth()]} ${day}, ${year}).`;
+                this.el.citeHarvard.textContent = `Wikipedia contributors (${year}) '${title}', Wikipedia, The Free Encyclopedia, Available at: ${url} (Accessed: ${day} ${monthsFull[today.getMonth()]} ${year}).`;
+
+                this.openModalElement(this.el.citeModal);
+            },
+
+            openModalElement(modalEl) {
+                modalEl.classList.remove('hidden');
+                setTimeout(() => {
+                    modalEl.classList.remove('opacity-0');
+                    const container = modalEl.firstElementChild;
+                    if (container) {
+                        container.classList.remove('scale-95');
+                        container.classList.add('scale-100');
+                    }
+                }, 10);
+                document.body.style.overflow = 'hidden';
+            },
+
+            closeModalElement(modalEl) {
+                modalEl.classList.add('opacity-0');
+                const container = modalEl.firstElementChild;
+                if (container) {
+                    container.classList.remove('scale-100');
+                    container.classList.add('scale-95');
+                }
+                setTimeout(() => {
+                    modalEl.classList.add('hidden');
+                    document.body.style.overflow = '';
+                }, 200);
+            },
+
+            updateCounters() {
+                this.el.savedCounter.textContent = this.state.saved.length;
+                this.el.compareCounter.textContent = this.state.comparisonList.length;
+            },
+
+            copyToClipboard(text) {
+                if (!text) return;
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    document.execCommand('copy');
+                    this.showToast('Copied to clipboard!');
+                } catch (err) {
+                    this.showToast('Failed to copy', 'error');
+                }
+                document.body.removeChild(textarea);
+            },
+
+            showToast(msg, type = 'info') {
+                const toast = document.createElement('div');
+                toast.className = `pointer-events-auto px-3.5 py-2.5 rounded-lg text-xs font-mono font-semibold shadow-lg border transition-all duration-200 transform translate-y-2 opacity-0 flex items-center gap-2 ${
+                    type === 'error' 
+                        ? 'bg-red-900 text-white border-red-700' 
+                        : 'bg-card text-main border-custom'
+                }`;
+                toast.innerHTML = `
+                    <span class="w-2 h-2 rounded-full ${type === 'error' ? 'bg-red-400' : 'bg-accent'}"></span>
+                    <span>${this.escapeHTML(msg)}</span>
+                `;
+
+                this.el.toastContainer.appendChild(toast);
+
+                setTimeout(() => toast.classList.remove('translate-y-2', 'opacity-0'), 10);
+                setTimeout(() => {
+                    toast.classList.add('opacity-0', 'translate-y-2');
+                    setTimeout(() => toast.remove(), 200);
+                }, 2400);
+            },
+
+            escapeHTML(str) {
+                if (!str) return '';
+                return str.replace(/[&<>'"]/g, 
+                    tag => ({
+                        '&': '&amp;',
+                        '<': '&lt;',
+                        '>': '&gt;',
+                        "'": '&#39;',
+                        '"': '&quot;'
+                    }[tag] || tag)
+                );
+            }
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            App.init();
+        });
+    </script>
+</body>
+</html>
